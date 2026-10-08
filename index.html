@@ -5,217 +5,356 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Superior Grindset</title>
 <meta name="description" content="Superior Grindset — mashqlar, ovqatlanish va foydali fitness ma'lumotlari o'zbek tilida.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 fill=%27%23e32b1b%27/%3E%3Ctext x=%2732%27 y=%2744%27 font-family=%27Impact,Arial%27 font-size=%2732%27 fill=%27white%27 text-anchor=%27middle%27%3ESG%3C/text%3E%3C/svg%3E">
+<meta property="og:title" content="Superior Grindset">
+<meta property="og:description" content="Mashq videolari, texnika, ovqatlanish va foydali ma'lumotlar — o'zbek tilida.">
+<meta property="og:image" content="https://superior-grindset.github.io/bilim.jpg">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 fill=%27%23e3241b%27/%3E%3Ctext x=%2732%27 y=%2744%27 font-family=%27Impact,Arial%27 font-size=%2732%27 fill=%27white%27 text-anchor=%27middle%27%3ESG%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Saira+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@600;700&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&display=swap">
 <style>
-
 :root{
-  color-scheme:dark;
-  --bg:#0a0a0a;--s1:#131313;--s2:#1b1b1b;--s3:#242424;--line:#2b2b2b;
-  --text:#f3f1eb;--chalk:#cfcac0;--muted:#8b877f;--red:#e32b1b;--red-d:#b8200f;--gold:#caa24e;
-  --display:"Anton","Impact","Arial Narrow",sans-serif;
-  --label:"Saira Condensed","Arial Narrow",sans-serif;
+  --paper:#f2efe9; --paper-2:#e8e3d9; --ink:#0b0b0b; --ink-2:#2a2826; --mut:#6d6860;
+  --red:#e3241b; --red-d:#b81a13;
+  --display:"Anton",Impact,"Arial Narrow",sans-serif; --dw:400;
   --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
-  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
-body{margin:0;background:var(--bg) var(--grain);color:var(--text);font-family:var(--body);font-size:16px;line-height:1.55}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.55}
 a{color:inherit}
 button{font:inherit}
-:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-.wrap{max-width:1120px;margin:0 auto;padding-inline:16px}
+:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+img{max-width:100%;display:block}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px}
 .stack{display:flex;flex-direction:column}
 
 /* NAV */
-.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:rgba(10,10,10,.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
-.nav .wrap{display:flex;align-items:center;gap:18px;min-height:60px;flex-wrap:wrap;padding-block:8px}
-.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.logo b{display:grid;place-items:center;width:38px;height:38px;background:var(--red);font-family:var(--display);font-weight:400;font-size:20px;color:#fff}
-.logo span{font-family:var(--label);font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:15px}
+.nav{position:sticky;top:env(safe-area-inset-top,0px);z-index:30;background:var(--ink);color:var(--paper)}
+.nav .wrap{display:flex;align-items:center;gap:20px;min-height:58px;flex-wrap:wrap;padding-block:6px}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;font-family:var(--display);font-weight:var(--dw);font-size:20px;letter-spacing:.03em;text-transform:uppercase}
+.logo i{font-style:normal;background:var(--red);color:#fff;padding:2px 7px}
 .links{display:flex;gap:4px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
-.links a{font-family:var(--label);font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:14px;text-decoration:none;color:var(--muted);padding:8px 12px;white-space:nowrap;border-bottom:2px solid transparent}
-.links a:hover{color:var(--text)}
-.links a.on{color:var(--text);border-bottom-color:var(--red)}
-.who{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--chalk)}
-.badge{display:inline-block;align-self:center;height:auto;line-height:1.5;font-family:var(--label);font-weight:700;font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:2px 7px;background:var(--s3);color:var(--muted)}
-.badge.gold{background:var(--gold);color:#111}
-.linkbtn{background:none;border:0;color:var(--muted);text-decoration:underline;cursor:pointer;padding:0}
-.linkbtn:hover{color:var(--text)}
+.links a{font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:13px;text-decoration:none;color:#bdb8ae;padding:10px 12px;white-space:nowrap;border-bottom:3px solid transparent}
+.links a:hover{color:#fff}
+.links a.on{color:#fff;border-bottom-color:var(--red)}
+.navbtn{font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:12px;text-decoration:none;background:var(--red);color:#fff;padding:9px 14px}
+@media (max-width:600px){.logo span{display:none}.nav .wrap{gap:10px}.links a{padding:10px 8px;font-size:12px}.links a:first-child{display:none}}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:13px;padding:14px 22px;border:2px solid var(--ink);background:var(--ink);color:var(--paper);text-decoration:none;cursor:pointer;transition:background .15s,color .15s,border-color .15s}
+.btn:hover{background:var(--red);border-color:var(--red);color:#fff}
+.btn.red{background:var(--red);border-color:var(--red);color:#fff}
+.btn.red:hover{background:var(--red-d);border-color:var(--red-d)}
+.btn.o{background:transparent;color:var(--ink)}
+.btn.o:hover{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 
 /* HERO */
-.hero{padding-block:56px 0}
-.kicker{font-family:var(--label);font-weight:700;letter-spacing:.24em;text-transform:uppercase;font-size:13px;color:var(--red)}
-.hero h1{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:clamp(58px,13vw,150px);line-height:.88;margin:14px 0 0}
-.hero h1 em{font-style:normal;color:transparent;-webkit-text-stroke:2px var(--text)}
-.hero p{max-width:50ch;color:var(--chalk);font-size:18px;margin:22px 0 0}
-.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin-top:34px;border:1px solid var(--line);background:var(--s1);max-width:640px}
-.board div{padding:14px 18px;border-right:1px solid var(--line);min-width:0}
-.board div:last-child{border-right:0}
-.board b{display:block;font-family:var(--display);font-weight:400;font-size:clamp(30px,6vw,40px);line-height:1;font-variant-numeric:tabular-nums}
-.board span{font-family:var(--label);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:var(--muted)}
-.tape{height:12px;margin-top:40px;background:repeating-linear-gradient(-45deg,var(--red) 0 14px,var(--bg) 14px 28px)}
+.hero{position:relative;overflow:hidden;border-bottom:3px solid var(--ink)}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:28px;align-items:stretch;padding-top:40px}
+@media (max-width:820px){.hero .wrap{grid-template-columns:1fr;padding-top:0}}
+.hero .txt{display:flex;flex-direction:column;justify-content:center;gap:22px;padding-bottom:40px}
+.kicker{font-weight:800;letter-spacing:.24em;text-transform:uppercase;font-size:13px;color:var(--red)}
+.hero h1{margin:0;font-family:var(--display);font-weight:var(--dw);text-transform:uppercase;font-size:clamp(68px,12.5vw,168px);line-height:.84;letter-spacing:-.005em}
+.skew{display:inline-block;background:var(--red);color:var(--paper);padding:0 .08em;transform:skewX(-8deg)}
+.hero p{margin:0;max-width:40ch;font-size:18px;font-weight:600}
+.btns{display:flex;gap:10px;flex-wrap:wrap}
+.hero .shot{min-height:520px;background:#111 center 25%/cover no-repeat;clip-path:polygon(14% 0,100% 0,86% 100%,0 100%)}
+@media (max-width:820px){.hero .shot{min-height:400px;order:-1;margin-inline:-16px;clip-path:polygon(0 0,100% 0,100% 88%,0 100%)}}
+.stats{display:flex;gap:28px;flex-wrap:wrap}
+.stats div b{display:block;font-family:var(--display);font-weight:var(--dw);font-size:44px;line-height:1;color:var(--red);font-variant-numeric:tabular-nums}
+.stats div span{font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:11px}
+
+.marq{background:var(--ink);color:var(--paper);overflow:hidden;white-space:nowrap;font-family:var(--display);font-weight:var(--dw);font-size:24px;letter-spacing:.06em;padding:12px 0;text-transform:uppercase}
+.marq div{display:inline-block;animation:mq 26s linear infinite}
+.marq em{font-style:normal;color:var(--red);margin:0 18px}
+@keyframes mq{to{transform:translateX(-50%)}}
 
 /* SECTIONS */
-main{padding-block:44px 72px}
+main{padding-block:44px 80px}
 .sec{display:flex;flex-direction:column;gap:18px}
-.sec-h{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:12px}
-h2{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:clamp(32px,6vw,48px);line-height:1;margin:0}
-.sub{font-family:var(--label);font-weight:600;letter-spacing:.12em;text-transform:uppercase;font-size:13px;color:var(--muted)}
-.more{font-family:var(--label);font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:13px;color:var(--red);text-decoration:none}
+.sec-h{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;border-bottom:3px solid var(--ink);padding-bottom:10px}
+h2.t{font-family:var(--display);font-weight:var(--dw);text-transform:uppercase;font-size:clamp(34px,6vw,56px);line-height:.95;margin:0}
+.sub{font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:var(--mut)}
+.more{font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:var(--red);text-decoration:none}
+.more:hover{text-decoration:underline}
 
-/* MUSCLE TILES */
-.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-@media (max-width:860px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:520px){.tiles{grid-template-columns:1fr}}
-.tile{position:relative;display:flex;flex-direction:column;justify-content:space-between;min-height:190px;padding:18px 20px;background:var(--s1);border:1px solid var(--line);text-decoration:none;overflow:hidden;transition:background .15s}
-.tile::after{content:"";position:absolute;left:0;bottom:0;height:4px;width:0;background:var(--red);transition:width .2s}
-.tile:hover{background:var(--s2)}
-.tile:hover::after{width:100%}
-.tile .top{display:flex;justify-content:space-between;font-family:var(--label);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:var(--muted);position:relative}
-.tile .top span:last-child{color:var(--red)}
-.tile .nm{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:clamp(36px,4.2vw,54px);line-height:.95;position:relative}
-.tile .uz{font-family:var(--label);font-weight:600;letter-spacing:.1em;text-transform:uppercase;font-size:14px;color:var(--chalk);position:relative}
-.tile .ghost{position:absolute;right:-4px;bottom:-30px;font-family:var(--display);font-size:170px;line-height:1;color:transparent;-webkit-text-stroke:1px #2a2a2a;pointer-events:none}
+.search{width:100%;max-width:620px;background:#fff;border:2px solid var(--ink);color:var(--ink);padding:14px 18px;font:600 16px var(--body)}
+.search:focus{outline:none;border-color:var(--red)}
+.res{display:flex;flex-direction:column;border:2px solid var(--ink);max-width:620px;background:#fff}
+.res a{display:flex;justify-content:space-between;gap:12px;padding:13px 18px;text-decoration:none;border-top:1px solid #d8d3c9}
+.res a:first-child{border-top:0}
+.res a:hover{background:var(--paper-2)}
+.res b{font-family:var(--display);font-weight:var(--dw);font-size:20px;text-transform:uppercase}
+.res span{font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);align-self:center;white-space:nowrap}
 
-/* EXERCISES */
-.back{font-family:var(--label);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:13px;color:var(--muted);text-decoration:none;align-self:flex-start}
-.back:hover{color:var(--text)}
-.page-h{display:flex;flex-direction:column;gap:10px}
-.page-h h1{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:clamp(52px,11vw,110px);line-height:.9;margin:0;overflow-wrap:anywhere}
-.page-h h1 small{display:block;font-family:var(--label);font-weight:700;font-size:15px;letter-spacing:.2em;color:var(--red);margin-bottom:8px;line-height:1.3}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:820px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:480px){.tiles{grid-template-columns:1fr}.tile{min-height:130px}}
+.tile{position:relative;display:flex;flex-direction:column;justify-content:space-between;min-height:180px;padding:18px 20px 24px;background:var(--ink);color:var(--paper);text-decoration:none;overflow:hidden;transition:transform .2s}
+.tile:hover{transform:translateY(-4px)}
+.tile::after{content:"";position:absolute;left:0;bottom:0;height:7px;width:100%;background:var(--red);transition:height .2s}
+.tile:hover::after{height:12px}
+.tile .top{display:flex;justify-content:space-between;font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:#a9a59d;position:relative}
+.tile .top span:last-child{color:var(--red);font-size:16px}
+.tile .nm{font-family:var(--display);font-weight:var(--dw);text-transform:uppercase;font-size:clamp(36px,4.2vw,58px);line-height:.9;position:relative;overflow-wrap:anywhere}
+.tile .uz{font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:#a9a59d;position:relative;margin-top:6px}
+.tile .ghost{position:absolute;right:-6px;bottom:-34px;font-family:var(--display);font-weight:var(--dw);font-size:180px;line-height:1;color:transparent;-webkit-text-stroke:1.5px #2b2a28;pointer-events:none}
+
+.plist{display:flex;flex-direction:column;border-top:3px solid var(--ink)}
+.prow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 24px;padding:20px 0;border-bottom:1px solid #cfc9bf;text-decoration:none}
+.prow:hover h3{color:var(--red)}
+.prow .meta{display:flex;gap:12px;flex-wrap:wrap;font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:var(--mut)}
+.prow .meta .k{color:var(--red)}
+.prow h3{grid-column:1;margin:2px 0 0;font-family:var(--display);font-weight:var(--dw);text-transform:uppercase;font-size:clamp(24px,3vw,34px);line-height:1;transition:color .15s}
+.prow p{grid-column:1;margin:4px 0 0;color:var(--ink-2);font-size:15px}
+.prow .big{grid-column:2;grid-row:1/span 3;align-self:center;text-align:right;font-family:var(--display);font-weight:var(--dw);font-size:clamp(30px,4.6vw,52px);line-height:1;color:var(--red);white-space:nowrap}
+.prow .big small{display:block;font-family:var(--body);font-weight:800;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);margin-top:6px}
+@media (max-width:560px){.prow .big{grid-column:1;grid-row:auto;text-align:left;margin-top:8px}}
+
+.about{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);background:var(--ink);color:var(--paper)}
+@media (max-width:820px){.about{grid-template-columns:1fr}}
+.about .img{min-height:440px;background:#222 center 35%/cover no-repeat}
+.about .txt{padding:36px 30px;display:flex;flex-direction:column;justify-content:center;gap:16px}
+.about .kick{font-weight:800;letter-spacing:.2em;text-transform:uppercase;font-size:12px;color:var(--red)}
+.about h2{margin:0;font-family:var(--display);font-weight:var(--dw);text-transform:uppercase;font-size:clamp(40px,6vw,68px);line-height:.92}
+.about h2 em{font-style:normal;color:var(--red)}
+.about p{margin:0;color:#cfc9be;max-width:44ch;font-size:17px}
+.about .chain{display:flex;flex-wrap:wrap;gap:4px 10px;font-family:var(--display);font-weight:var(--dw);font-size:18px;letter-spacing:.06em;text-transform:uppercase}
+.about .chain i{font-style:normal;color:var(--red)}
+
+/* PAGE HEADERS */
+.back{font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:var(--mut);text-decoration:none;align-self:flex-start}
+.back:hover{color:var(--red)}
+.page-h{display:flex;flex-direction:column;gap:8px;border-bottom:4px solid var(--ink);padding-bottom:12px}
+.page-h small{font-weight:800;letter-spacing:.2em;text-transform:uppercase;font-size:13px;color:var(--red)}
+.page-h h1{margin:0;font-family:var(--display);font-weight:var(--dw);text-transform:uppercase;font-size:clamp(60px,13vw,150px);line-height:.85;overflow-wrap:anywhere}
+.bilim-head{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr);gap:24px;align-items:end;border-bottom:4px solid var(--ink);padding-bottom:16px}
+@media (max-width:720px){.bilim-head{grid-template-columns:1fr}.bilim-head .img{display:none}}
+.bilim-head h1{margin:0;font-family:var(--display);font-weight:var(--dw);text-transform:uppercase;font-size:clamp(72px,14vw,170px);line-height:.85}
+.bilim-head p{margin:14px 0 0;font-weight:600;font-size:18px;max-width:40ch}
+.bilim-head .img{aspect-ratio:4/5;max-height:340px;width:100%;background:#222 center 75%/cover no-repeat;clip-path:polygon(14% 0,100% 0,86% 100%,0 100%)}
+
+.filters{display:flex;gap:8px;flex-wrap:wrap}
+.filters button{font-weight:800;letter-spacing:.12em;text-transform:uppercase;font-size:12px;padding:9px 16px;border:2px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+
 .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
-.card{display:flex;flex-direction:column;background:var(--s1);border:1px solid var(--line);text-decoration:none;transition:border-color .15s}
-.card:hover{border-color:var(--red)}
-.thumb{position:relative;aspect-ratio:16/9;background:linear-gradient(135deg,#1d1d1d,#101010);overflow:hidden;display:grid;place-items:center}
-.thumb img{width:100%;height:100%;object-fit:cover;filter:grayscale(.35) contrast(1.05)}
-.thumb .pl{position:absolute;left:12px;bottom:12px;font-family:var(--label);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:11px;background:rgba(0,0,0,.75);padding:3px 8px}
-.play{width:58px;height:58px;border-radius:50%;background:var(--red);display:grid;place-items:center;position:absolute}
-.play::before{content:"";margin-left:5px;border-style:solid;border-width:11px 0 11px 18px;border-color:transparent transparent transparent #fff}
-.card .bd{padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px;flex:1}
-.card h3{font-family:var(--label);font-weight:800;font-size:22px;letter-spacing:.02em;text-transform:uppercase;margin:0;line-height:1.1}
-.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.chip{font-family:var(--label);font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:12.5px;padding:3px 9px;background:var(--s3);color:var(--chalk);font-variant-numeric:tabular-nums}
-.chip.red{background:var(--red);color:#fff}
-.cm{margin-top:auto;font-size:13px;color:var(--muted)}
+.card{display:flex;flex-direction:column;background:#fff;border:2px solid var(--ink);text-decoration:none;transition:transform .2s,box-shadow .2s}
+.card:hover{transform:translateY(-3px);box-shadow:6px 6px 0 var(--red)}
+.thumb{position:relative;aspect-ratio:16/9;background:var(--ink);overflow:hidden;display:grid;place-items:center}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.thumb .pl{position:absolute;left:12px;top:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:11px;background:var(--paper);color:var(--ink);padding:3px 8px}
+.play{width:62px;height:62px;border-radius:50%;background:var(--red);display:grid;place-items:center;position:absolute}
+.play::before{content:"";margin-left:5px;border-style:solid;border-width:12px 0 12px 19px;border-color:transparent transparent transparent #fff}
+.card .bd{padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px}
+.card h3{margin:0;font-family:var(--display);font-weight:var(--dw);font-size:26px;text-transform:uppercase;line-height:1}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-weight:800;letter-spacing:.08em;text-transform:uppercase;font-size:12px;padding:4px 9px;border:2px solid var(--ink);font-variant-numeric:tabular-nums}
+.chip.red{background:var(--red);border-color:var(--red);color:#fff}
 
-/* PLAYER + DETAIL */
-.detail{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:28px;align-items:start}
+.detail{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:30px;align-items:start}
 @media (max-width:860px){.detail{grid-template-columns:1fr}}
-.player{background:#000;border:1px solid var(--line)}
+.player{background:#000;border:2px solid var(--ink)}
 .player .box{position:relative;width:100%;aspect-ratio:16/9}
 .player.vertical .box{aspect-ratio:9/16;max-width:420px;max-height:80vh;margin:0 auto}
 .player .box iframe,.player .box video{position:absolute;inset:0;width:100%;height:100%;border:0}
-.player iframe.tg{display:block;width:100%;height:520px;border:0;background:#111}
-.player .err{padding:40px 20px;text-align:center;color:var(--muted)}
-.specs{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);background:var(--s1)}
-.specs div{padding:12px 14px;border-right:1px solid var(--line)}
-.specs div:last-child{border-right:0}
-.specs b{display:block;font-family:var(--display);font-weight:400;font-size:30px;line-height:1.05;font-variant-numeric:tabular-nums}
-.specs span{font-family:var(--label);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:11.5px;color:var(--muted)}
-.text{white-space:pre-line;color:var(--chalk);margin:0;max-width:66ch}
+.player iframe.tg{display:block;width:100%;height:520px;border:0;background:#fff}
+.player .err{padding:40px 20px;text-align:center;color:#bbb}
 .side{display:flex;flex-direction:column;gap:18px}
-.side h1{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:clamp(38px,6vw,56px);line-height:.95;margin:0}
+.side .kick{font-weight:800;letter-spacing:.2em;text-transform:uppercase;font-size:13px;color:var(--red)}
+.side h1{margin:0;font-family:var(--display);font-weight:var(--dw);text-transform:uppercase;font-size:clamp(44px,6vw,72px);line-height:.9}
+.specs{display:grid;grid-template-columns:repeat(3,1fr);border:2px solid var(--ink);background:#fff}
+.specs div{padding:12px 14px;border-right:2px solid var(--ink)}
+.specs div:last-child{border-right:0}
+.specs b{display:block;font-family:var(--display);font-weight:var(--dw);font-size:34px;line-height:1.05;font-variant-numeric:tabular-nums}
+.specs span{font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:var(--mut)}
+.text{white-space:pre-line;margin:0;max-width:66ch;font-size:17px}
 
-/* COMMENTS */
-.comments{display:flex;flex-direction:column;gap:14px;border-top:1px solid var(--line);padding-top:22px;max-width:760px}
-.comments h3{font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:30px;margin:0}
-.cform{display:flex;flex-direction:column;gap:8px}
-.cform textarea{min-height:90px;resize:vertical;background:var(--s1);border:1px solid var(--line);color:var(--text);padding:12px;font:inherit;width:100%}
-.cform textarea:focus{outline:none;border-color:var(--gold)}
-.crow{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-.note{font-size:13px;color:var(--muted)}
-.clist{display:flex;flex-direction:column;gap:1px;background:var(--line);border:1px solid var(--line)}
-.c{background:var(--s1);padding:12px 14px;display:flex;flex-direction:column;gap:4px}
-.c .h{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted)}
-.c .h b{color:var(--text);font-weight:600;font-size:14px}
-.c p{margin:0;white-space:pre-line;overflow-wrap:anywhere}
-.c .x{margin-left:auto}
+.article{max-width:780px}
+.article h1{margin:0;font-family:var(--display);font-weight:var(--dw);text-transform:uppercase;font-size:clamp(46px,8vw,92px);line-height:.92}
+.article .meta{font-weight:800;letter-spacing:.16em;text-transform:uppercase;font-size:12px;color:var(--red)}
+.stat-hero{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;border-top:3px solid var(--ink);border-bottom:3px solid var(--ink);padding:14px 0}
+.stat-hero b{font-family:var(--display);font-weight:var(--dw);font-size:clamp(56px,10vw,96px);line-height:1;color:var(--red)}
+.stat-hero span{font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:14px}
+.article .text{font-size:18px;line-height:1.7}
 
-/* BUTTONS, FORMS */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 20px;border:1px solid var(--line);background:transparent;color:var(--text);font-family:var(--label);font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:14px;text-decoration:none;cursor:pointer}
-.btn:hover{border-color:#4a4a4a}
-.btn.red{background:var(--red);border-color:var(--red);color:#fff}
-.btn.red:hover{background:var(--red-d)}
-.btn.gold{border-color:var(--gold);color:var(--gold)}
-.btn.sm{padding:7px 14px;font-size:12px}
-.btn:disabled{opacity:.55;cursor:default}
-.danger{color:#ff8a80;border-color:#52231f}
-.admin{border:1px solid var(--gold);background:var(--s1);padding:18px;display:flex;flex-direction:column;gap:12px}
-.admin h3{margin:0;font-family:var(--display);font-weight:400;text-transform:uppercase;font-size:26px;color:var(--gold)}
-.frow{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
-.fld{display:flex;flex-direction:column;gap:4px;font-family:var(--label);font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:12px;color:var(--muted)}
-.fld input,.fld select,.fld textarea{background:var(--bg);border:1px solid var(--line);color:var(--text);padding:10px;font:400 15px var(--body);letter-spacing:0;text-transform:none;width:100%}
-.fld textarea{min-height:120px;resize:vertical}
-.msg{font-size:14px;color:var(--gold)}
-.msg.err{color:#ff8a80}
-.empty{border:1px dashed var(--line);padding:28px;text-align:center;color:var(--muted)}
 
-/* POSTS */
-.filters{display:flex;gap:6px;flex-wrap:wrap}
-.filters button{font-family:var(--label);font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:13px;padding:7px 14px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
-.filters button[aria-pressed="true"]{background:var(--text);color:var(--bg);border-color:var(--text)}
-.plist{display:flex;flex-direction:column;gap:1px;background:var(--line);border:1px solid var(--line)}
-.prow{display:grid;grid-template-columns:1fr auto;gap:6px 20px;padding:18px 20px;background:var(--s1);text-decoration:none}
-.prow:hover{background:var(--s2)}
-.prow .meta{display:flex;gap:10px;flex-wrap:wrap;font-family:var(--label);font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:12px;color:var(--muted)}
-.prow .meta .k{color:var(--gold)}
-.prow h3{grid-column:1;margin:0;font-family:var(--label);font-weight:800;font-size:24px;text-transform:uppercase;line-height:1.1}
-.prow p{grid-column:1;margin:0;color:var(--muted);font-size:15px}
-.prow .big{grid-column:2;grid-row:1/span 3;align-self:center;text-align:right;font-family:var(--display);font-size:clamp(26px,4vw,40px);line-height:1;color:var(--red);white-space:nowrap}
-.prow .big small{display:block;font-family:var(--label);font-weight:600;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-top:4px}
-@media (max-width:560px){.prow .big{grid-column:1;grid-row:auto;text-align:left}}
+.cta{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;background:var(--ink);color:var(--paper);padding:22px 24px;max-width:780px}
+.cta b{font-family:var(--display);font-weight:var(--dw);font-size:28px;text-transform:uppercase;letter-spacing:.02em}
+.cta p{margin:2px 0 0;color:#bdb8ae;font-weight:600;font-size:16px}
 
-.tablewrap{overflow-x:auto;border:1px solid var(--line)}
-table{border-collapse:collapse;width:100%;font-size:14px;min-width:560px;background:var(--s1)}
-th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
-th{font-family:var(--label);font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:12px;color:var(--muted)}
-tr:last-child td{border-bottom:0}
+.empty{border:2px dashed #b9b3a8;padding:28px;text-align:center;color:var(--mut)}
+footer{background:var(--ink);color:#bdb8ae;padding-block:26px}
+footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:14px}
+footer b{font-family:var(--display);font-weight:var(--dw);font-size:20px;letter-spacing:.06em;text-transform:uppercase;color:var(--paper)}
+footer a{color:var(--paper)}
+.loading{color:var(--mut);padding-block:60px}
 
-footer{border-top:1px solid var(--line);padding-block:24px}
-footer .wrap{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
-footer b{font-family:var(--label);font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--text)}
-.loading{color:var(--muted);padding-block:40px}
-.search{width:100%;max-width:520px;background:var(--s1);border:1px solid var(--line);color:var(--text);padding:13px 16px;font:500 16px var(--body)}
-.search:focus{outline:none;border-color:var(--red)}
-.search::placeholder{color:#6d6a64}
-.res{display:flex;flex-direction:column;gap:1px;background:var(--line);border:1px solid var(--line)}
-.res a{display:flex;justify-content:space-between;gap:12px;padding:14px 18px;background:var(--s1);text-decoration:none}
-.res a:hover{background:var(--s2)}
-.res b{font-family:var(--label);font-weight:800;font-size:19px;text-transform:uppercase;letter-spacing:.02em}
-.res span{font-family:var(--label);font-weight:700;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);align-self:center;white-space:nowrap}
-.admin-row{display:flex;gap:8px;flex-wrap:wrap}
-@media (max-width:600px){.logo span{display:none}.nav .wrap{gap:10px}.who>span:first-child{display:none}.links a{padding:8px 8px;font-size:13px}}
-@media (prefers-reduced-motion:reduce){.tile,.tile::after,.card{transition:none}}
 
-.cta{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;border:1px solid var(--line);background:var(--s1);padding:18px 20px;max-width:760px}
-.cta b{font-family:var(--label);font-weight:800;font-size:20px;text-transform:uppercase;letter-spacing:.02em}
-.cta p{margin:2px 0 0;color:var(--muted);font-size:14px}
+/* video manbalari */
+.srctabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border:2px solid var(--ink)}
+@media (max-width:640px){.srctabs{grid-template-columns:1fr}}
+.srctab{display:flex;flex-direction:column;align-items:flex-start;gap:4px;text-align:left;padding:14px 16px;background:transparent;border:0;border-right:2px solid var(--ink);cursor:pointer;color:var(--ink)}
+.srctab:last-child{border-right:0}
+@media (max-width:640px){.srctab{border-right:0;border-bottom:2px solid var(--ink)}.srctab:last-child{border-bottom:0}}
+.srctab .n{font-family:var(--display);font-weight:var(--dw);font-size:14px;color:var(--red)}
+.srctab b{font-family:var(--display);font-weight:var(--dw);text-transform:uppercase;font-size:clamp(22px,2.6vw,30px);line-height:1}
+.srctab .c{font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:var(--mut)}
+.srctab[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+.srctab[aria-selected="true"] .c{color:#bdb8ae}
+.srctab:hover:not([aria-selected="true"]){background:var(--paper-2)}
+.srcdesc{margin:0;font-weight:600;font-size:17px;max-width:60ch}
+.src{position:absolute;right:12px;top:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;font-size:11px;padding:3px 8px}
+.src-trainer{background:#fff;color:var(--ink)}
+.src-premium{background:var(--red);color:#fff}
+.src-gym{background:var(--ink);color:var(--paper);outline:1px solid #555}
+.chip.src-trainer{background:#fff;border-color:var(--ink)}
+.chip.src-premium{border-color:var(--red)}
+.chip.src-gym{border-color:var(--ink);outline:0}
+.card .by{font-weight:700;font-size:13px;color:var(--mut);letter-spacing:.04em}
+.openlink{align-self:flex-start;font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:12px;color:var(--ink);text-decoration:none;border-bottom:3px solid var(--red);padding-bottom:2px}
+.openlink:hover{color:var(--red)}
+/* RU: Anton kirill harflarini qo'llamaydi -> Oswald */
+html[lang="ru"]{--display:"Oswald","Arial Narrow",Impact,sans-serif;--dw:700}
+html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+/* til tugmalari */
+.lang{display:flex;border:1px solid #3a3835}
+.lang button{background:transparent;border:0;color:#bdb8ae;font-weight:800;font-size:11px;letter-spacing:.12em;padding:7px 9px;cursor:pointer}
+.lang button[aria-pressed="true"]{background:var(--paper);color:var(--ink)}
+.lang button:hover{color:#fff}
+.lang button[aria-pressed="true"]:hover{color:var(--ink)}
+@media (max-width:600px){.navbtn{display:none}}
+/* motivatsiya bloki */
+.quote{background:var(--red);color:#fff;padding:44px 28px;display:flex;flex-direction:column;gap:14px;position:relative;overflow:hidden}
+.quote::after{content:"1%";position:absolute;right:-10px;bottom:-60px;font-family:var(--display);font-weight:var(--dw);font-size:260px;line-height:1;color:transparent;-webkit-text-stroke:2px rgba(255,255,255,.25);pointer-events:none}
+.quote .q{font-family:var(--display);font-weight:var(--dw);text-transform:uppercase;font-size:clamp(48px,9vw,120px);line-height:.88;position:relative;z-index:1}
+.quote .q .skew{background:var(--ink);color:#fff}
+.quote p{margin:0;font-weight:700;font-size:18px;max-width:46ch;position:relative;z-index:1}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 <div id="app"><div class="wrap loading">Yuklanmoqda…</div></div>
 <script>
 (function(){
+  // ---------- TILLAR / LANGUAGES / ЯЗЫКИ ----------
+  var T = {
+    uz: {
+      home:"Bosh sahifa", workouts:"Mashqlar", knowledge:"Bilim", channel:"Kanal",
+      kicker:"O'zingdan boshla", heroA:"Hozir", heroB:"boshla.",
+      heroP:"Har bir mashq videosi, texnikasi, set va takrorlari. Ovqatlanish va tiklanish bo'yicha qisqa, amaliy ma'lumotlar. Bahona yo'q.",
+      seeWorkouts:"Mashqlarni ko'rish", tgChannel:"Telegram kanal",
+      stMuscles:"Mushak guruhi", stVideos:"Mashq videosi", stPosts:"Foydali post",
+      marquee:["O'zingdan boshla","Hozir boshla","Har kuni 1% yaxshiroq","Bahona yo'q","Intizom — bu erkinlik"],
+      search:"Qidirish: bench press, protein, oyoq…", nothing:"Hech narsa topilmadi.", exercise:"Mashq",
+      muscleGroups:"Mushak guruhlari", pickGroup:"Guruhni tanlang", exCount:" ta mashq",
+      quoteA:"Har kuni", quoteB:"1% yaxshiroq.", quoteP:"1,01³⁶⁵ ≈ 37,8 — kichik qadamlar katta natija beradi. Bugun ham bitta qadam qo'y.",
+      latest:"Oxirgi postlar", all:"Barchasi →",
+      aboutA:"Sinab ko'raman.", aboutB:"Keyin ulashaman.",
+      aboutP:"Nima yeyman, qanday mashq qilaman, nimani o'rgandim — hammasini oddiy tilda, amalda qo'llash uchun yozaman.",
+      subscribe:"Kanalga obuna bo'lish",
+      ask:"Savolingiz bormi?", askBot:"Botga yozing — javob beramiz.", askCh:"Kanalda so'rang — javob beramiz.", writeBot:"Botga yozish", goCh:"Kanalga o'tish",
+      wSmall:"Har bir mashq — video, texnika, set va takror", wTitle:"Mashqlar",
+      allMuscles:"← Barcha mushaklar", noEx:"Bu guruhda hozircha mashq yo'q. Tez orada qo'shiladi.",
+      srcTitle:{trainer:"Trener videolari", premium:"Premium zal", gym:"Oddiy zal"},
+      srcDesc:{trainer:"YouTube'dagi tajribali trenerlardan to'g'ri texnika.", premium:"Mening mashg'ulotlarim — zamonaviy jihozlar bilan.", gym:"Mening mashg'ulotlarim — oddiy zalda, hamma uchun."},
+      noSrc:"Bu bo'limda hozircha video yo'q. Tez orada qo'shiladi.", coach:"Trener",
+      openIn:"da ochish", openPre:"",
+      noVideo:"Videoni ochib bo'lmadi.", sets:"Set", reps:"Takror", rest:"Dam olish", restShort:"Dam: ",
+      kA:"Bilim —", kB:"kuch.", kP:"Ovqatlanish, tiklanish va mashg'ulot — qisqa va amaliy.",
+      allCat:"Hammasi", noPosts:"Bu bo'limda hozircha post yo'q.", backK:"← Bilim",
+      notFound:"Sahifa topilmadi. ", toHome:"Bosh sahifaga", loadErr:"Ma'lumotlarni yuklab bo'lmadi. Sahifani yangilang.",
+      cats:{bilim:"Bilim", ovqat:"Ovqatlanish", trening:"Trening"},
+      months:["yanvar","fevral","mart","aprel","may","iyun","iyul","avgust","sentabr","oktabr","noyabr","dekabr"],
+      muscles:{chest:"Ko'krak", back:"Orqa", legs:"Oyoq", shoulders:"Yelka", biceps:"Bitseps", triceps:"Tritseps", abs:"Press", cardio:"Kardio"}
+    },
+    ru: {
+      home:"Главная", workouts:"Упражнения", knowledge:"Знания", channel:"Канал",
+      kicker:"Начни с себя", heroA:"Начни", heroB:"сейчас.",
+      heroP:"Видео упражнений, техника, подходы и повторения. Короткие и практичные советы по питанию и восстановлению. Без оправданий.",
+      seeWorkouts:"Смотреть упражнения", tgChannel:"Telegram-канал",
+      stMuscles:"Групп мышц", stVideos:"Видео упражнений", stPosts:"Полезных постов",
+      marquee:["Начни с себя","Начни сейчас","Каждый день на 1% лучше","Без оправданий","Дисциплина — это свобода"],
+      search:"Поиск: жим лёжа, белок, ноги…", nothing:"Ничего не найдено.", exercise:"Упражнение",
+      muscleGroups:"Группы мышц", pickGroup:"Выбери группу", exCount:" упр.",
+      quoteA:"Каждый день", quoteB:"на 1% лучше.", quoteP:"1,01³⁶⁵ ≈ 37,8 — маленькие шаги дают большой результат. Сделай свой шаг сегодня.",
+      latest:"Последние посты", all:"Все →",
+      aboutA:"Пробую сам.", aboutB:"Потом делюсь.",
+      aboutP:"Что я ем, как тренируюсь, чему научился — всё простым языком, чтобы ты мог применить это на практике.",
+      subscribe:"Подписаться на канал",
+      ask:"Есть вопрос?", askBot:"Напиши боту — ответим.", askCh:"Спроси в канале — ответим.", writeBot:"Написать боту", goCh:"Перейти в канал",
+      wSmall:"Каждое упражнение — видео, техника, подходы и повторения", wTitle:"Упражнения",
+      allMuscles:"← Все группы мышц", noEx:"В этой группе пока нет упражнений. Скоро добавим.",
+      srcTitle:{trainer:"Видео тренеров", premium:"Премиум-зал", gym:"Обычный зал"},
+      srcDesc:{trainer:"Правильная техника от опытных тренеров с YouTube.", premium:"Мои тренировки — на современном оборудовании.", gym:"Мои тренировки — в обычном зале, для всех."},
+      noSrc:"В этом разделе пока нет видео. Скоро добавим.", coach:"Тренер",
+      openIn:"", openPre:"Открыть в ",
+      noVideo:"Не удалось открыть видео.", sets:"Подходы", reps:"Повторы", rest:"Отдых", restShort:"Отдых: ",
+      kA:"Знание —", kB:"сила.", kP:"Питание, восстановление и тренировки — коротко и по делу.",
+      allCat:"Все", noPosts:"В этом разделе пока нет постов.", backK:"← Знания",
+      notFound:"Страница не найдена. ", toHome:"На главную", loadErr:"Не удалось загрузить данные. Обнови страницу.",
+      cats:{bilim:"Знания", ovqat:"Питание", trening:"Тренировки"},
+      months:["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"],
+      muscles:{chest:"Грудь", back:"Спина", legs:"Ноги", shoulders:"Плечи", biceps:"Бицепс", triceps:"Трицепс", abs:"Пресс", cardio:"Кардио"}
+    },
+    en: {
+      home:"Home", workouts:"Workouts", knowledge:"Knowledge", channel:"Channel",
+      kicker:"Start with yourself", heroA:"Start", heroB:"now.",
+      heroP:"Exercise videos, technique, sets and reps. Short, practical tips on nutrition and recovery. No excuses.",
+      seeWorkouts:"See workouts", tgChannel:"Telegram channel",
+      stMuscles:"Muscle groups", stVideos:"Workout videos", stPosts:"Useful posts",
+      marquee:["Start with yourself","Start now","1% better every day","No excuses","Discipline is freedom"],
+      search:"Search: bench press, protein, legs…", nothing:"Nothing found.", exercise:"Workout",
+      muscleGroups:"Muscle groups", pickGroup:"Pick a group", exCount:" workouts",
+      quoteA:"1% better", quoteB:"every day.", quoteP:"1.01³⁶⁵ ≈ 37.8 — small steps add up to big results. Take your step today.",
+      latest:"Latest posts", all:"See all →",
+      aboutA:"I test it.", aboutB:"Then I share it.",
+      aboutP:"What I eat, how I train, what I've learned — all in plain words you can put into practice.",
+      subscribe:"Subscribe to the channel",
+      ask:"Got a question?", askBot:"Message the bot — we'll answer.", askCh:"Ask in the channel — we'll answer.", writeBot:"Message the bot", goCh:"Open the channel",
+      wSmall:"Every exercise — video, technique, sets and reps", wTitle:"Workouts",
+      allMuscles:"← All muscle groups", noEx:"No workouts in this group yet. Coming soon.",
+      srcTitle:{trainer:"Coach videos", premium:"Premium gym", gym:"Regular gym"},
+      srcDesc:{trainer:"Proper technique from experienced coaches on YouTube.", premium:"My workouts — with modern equipment.", gym:"My workouts — in a regular gym, for everyone."},
+      noSrc:"No videos in this section yet. Coming soon.", coach:"Coach",
+      openIn:"", openPre:"Open in ",
+      noVideo:"Couldn't open the video.", sets:"Sets", reps:"Reps", rest:"Rest", restShort:"Rest: ",
+      kA:"Knowledge", kB:"is power.", kP:"Nutrition, recovery and training — short and practical.",
+      allCat:"All", noPosts:"No posts in this section yet.", backK:"← Knowledge",
+      notFound:"Page not found. ", toHome:"Go home", loadErr:"Couldn't load the data. Please refresh the page.",
+      cats:{bilim:"Knowledge", ovqat:"Nutrition", trening:"Training"},
+      months:["January","February","March","April","May","June","July","August","September","October","November","December"],
+      muscles:{chest:"", back:"", legs:"", shoulders:"", biceps:"", triceps:"", abs:"", cardio:""}
+    }
+  };
+  var LANGS = ["uz","ru","en"];
+  function detectLang(){
+    try { var s = localStorage.getItem("sg_lang"); if (LANGS.indexOf(s) !== -1) return s; } catch(e){}
+    return "uz"; // asosiy auditoriya o'zbekcha; boshqa tilni foydalanuvchi o'zi tanlaydi
+  }
+  var LANG = detectLang();
+  function t(k){ return (T[LANG] && T[LANG][k] !== undefined) ? T[LANG][k] : T.uz[k]; }
+  function setLang(l){
+    LANG = l;
+    try { localStorage.setItem("sg_lang", l); } catch(e){}
+    document.documentElement.lang = l;
+    render();
+  }
+  // Ma'lumotdagi tarjima maydoni: title_ru, body_en ...
+  function tx(o, f){ return (LANG !== "uz" && o[f + "_" + LANG]) ? o[f + "_" + LANG] : (o[f] || ""); }
+
   var MUSCLES = [
-    {id:"chest", name:"Chest", uz:"Ko'krak"},
-    {id:"back", name:"Back", uz:"Orqa"},
-    {id:"legs", name:"Legs", uz:"Oyoq"},
-    {id:"shoulders", name:"Shoulders", uz:"Yelka"},
-    {id:"biceps", name:"Biceps", uz:"Bitseps"},
-    {id:"triceps", name:"Triceps", uz:"Tritseps"},
-    {id:"abs", name:"Abs", uz:"Press", optional:true},
-    {id:"cardio", name:"Cardio", uz:"Kardio", optional:true}
+    {id:"chest", name:"Chest"}, {id:"back", name:"Back"}, {id:"legs", name:"Legs"},
+    {id:"shoulders", name:"Shoulders"}, {id:"biceps", name:"Biceps"}, {id:"triceps", name:"Triceps"},
+    {id:"abs", name:"Abs", optional:true}, {id:"cardio", name:"Cardio", optional:true}
   ];
   var MBY = {}; MUSCLES.forEach(function(m){ MBY[m.id] = m; });
-  var CATS = {bilim:"Bilim", ovqat:"Ovqatlanish", trening:"Trening"};
-  var MO = ["yanvar","fevral","mart","aprel","may","iyun","iyul","avgust","sentabr","oktabr","noyabr","dekabr"];
   var DATA = {channel:"https://t.me/superior_grindset", bot:"", exercises:[], posts:[]};
-  var st = {postFilter:"all", q:""};
+  var st = {postFilter:"all", q:"", src:{}};
+  var SOURCES = ["trainer","premium","gym"];
+  function srcOf(e){ return SOURCES.indexOf(e.source) !== -1 ? e.source : "gym"; }
 
-  // ---------- helpers ----------
   function el(tag, attrs, kids){
     var n = document.createElement(tag);
     if (attrs) for (var k in attrs){
@@ -223,18 +362,28 @@ footer b{font-family:var(--label);font-weight:800;letter-spacing:.2em;text-trans
       if (v === null || v === undefined || v === false) continue;
       if (k === "text") n.textContent = v;
       else if (k === "class") n.className = v;
+      else if (k === "bg") n.style.backgroundImage = "url(" + v + ")";
       else if (k.slice(0,2) === "on") n.addEventListener(k.slice(2), v);
       else n.setAttribute(k, v === true ? "" : v);
     }
     (kids||[]).forEach(function(c){ if (c) n.appendChild(typeof c === "string" ? document.createTextNode(c) : c); });
     return n;
   }
-  function fmtDate(iso){ if(!iso) return ""; var p = iso.split("-").map(Number); return p[2] + "-" + MO[p[1]-1] + ", " + p[0]; }
+  function fmtDate(iso){
+    if(!iso) return "";
+    var p = iso.split("-").map(Number), m = t("months")[p[1]-1];
+    return LANG === "en" ? m + " " + p[2] + ", " + p[0] : LANG === "ru" ? p[2] + " " + m + " " + p[0] : p[2] + "-" + m + ", " + p[0];
+  }
+  function catName(c){ return t("cats")[c] || c; }
+  function muscleSub(id){ return t("muscles")[id] || ""; }
   function exOf(m){ return DATA.exercises.filter(function(e){ return e.muscle === m; }); }
   function route(){ var h = location.hash.replace(/^#\/?/, "").split("/"); return {page: h[0] || "home", arg: decodeURIComponent(h[1] || "")}; }
-  function page(kids, gap, maxw){
-    return el("main", null, [el("div", {class:"wrap stack", style:"gap:" + (gap || 28) + "px" + (maxw ? ";max-width:" + maxw + "px" : "")}, kids)]);
+  function page(kids, gap, cls){
+    return el("main", null, [el("div", {class:"wrap stack" + (cls ? " " + cls : ""), style:"gap:" + (gap || 30) + "px"}, kids)]);
   }
+  function sortedPosts(){ return DATA.posts.slice().sort(function(a, b){ return (b.date || "").localeCompare(a.date || ""); }); }
+  function botLink(){ return DATA.bot ? "https://t.me/" + DATA.bot.replace(/^@/, "") : DATA.channel; }
+  function shownMuscles(){ return MUSCLES.filter(function(m){ return !m.optional || exOf(m.id).length; }); }
 
   // Video havolasini sayt ichida ko'rsatish
   function embed(url){
@@ -263,72 +412,107 @@ footer b{font-family:var(--label);font-weight:800;letter-spacing:.2em;text-trans
     if (host === "vimeo.com" && /^\d+$/.test(parts[parts.length-1] || ""))
       return {kind:"iframe", platform:"Vimeo", vertical:false, src:"https://player.vimeo.com/video/" + parts[parts.length-1]};
     if ((host === "t.me" || host === "telegram.me") && parts.length === 2 && /^\d+$/.test(parts[1]) && /^[A-Za-z0-9_]{4,}$/.test(parts[0]))
-      return {kind:"telegram", platform:"Telegram", vertical:false, src:"https://t.me/" + parts[0] + "/" + parts[1] + "?embed=1&dark=1"};
+      return {kind:"telegram", platform:"Telegram", vertical:false, src:"https://t.me/" + parts[0] + "/" + parts[1] + "?embed=1"};
     if (/\.(mp4|webm|mov)$/i.test(u.pathname)) return {kind:"file", platform:"Video", vertical:false, src:url};
     return null;
   }
 
   // ---------- layout ----------
   function nav(r){
-    var items = [["#/","Mashqlar", ["home","m","ex"].indexOf(r.page) !== -1], ["#/bilim","Bilim", r.page === "bilim" || r.page === "post"]];
+    var items = [["#/", t("home"), r.page === "home"], ["#/mashqlar", t("workouts"), ["mashqlar","m","ex"].indexOf(r.page) !== -1], ["#/bilim", t("knowledge"), r.page === "bilim" || r.page === "post"]];
     return el("nav", {class:"nav"}, [el("div", {class:"wrap"}, [
-      el("a", {class:"logo", href:"#/"}, [el("b", {text:"SG"}), el("span", {text:"Superior Grindset"})]),
+      el("a", {class:"logo", href:"#/"}, [el("i", {text:"SG"}), el("span", {text:"Superior Grindset"})]),
       el("div", {class:"links"}, items.map(function(i){ return el("a", {href:i[0], class:i[2] ? "on" : null, text:i[1]}); })),
-      el("a", {class:"btn red sm", href:DATA.channel, target:"_blank", rel:"noopener", text:"Kanal"})
+      el("div", {class:"lang", role:"group", "aria-label":"Til / Язык / Language"}, LANGS.map(function(l){
+        return el("button", {type:"button", "aria-pressed":String(l === LANG), text:l.toUpperCase(), onclick:function(){ setLang(l); }});
+      })),
+      el("a", {class:"navbtn", href:DATA.channel, target:"_blank", rel:"noopener", text:t("channel")})
     ])]);
   }
+  function marquee(){
+    var row = [];
+    for (var r = 0; r < 3; r++) t("marquee").forEach(function(w){ row.push(w); row.push(el("em", {text:"/"})); });
+    return el("div", {class:"marq", "aria-hidden":"true"}, [el("div", null, row)]);
+  }
   function footer(){
-    return el("footer", null, [el("div", {class:"wrap"}, [el("b", {text:"Superior Grindset"}), el("span", {text:"Discipline → Knowledge → Training → Nutrition → Progress"})])]);
+    return el("footer", null, [el("div", {class:"wrap"}, [
+      el("b", {text:"Superior Grindset"}),
+      el("span", null, [el("a", {href:DATA.channel, target:"_blank", rel:"noopener", text:t("tgChannel")}), " · ", el("a", {href:botLink(), target:"_blank", rel:"noopener", text: DATA.bot ? "@" + DATA.bot : "Bot"})])
+    ])]);
   }
   function askBox(){
-    var link = DATA.bot ? "https://t.me/" + DATA.bot.replace(/^@/, "") : DATA.channel;
     return el("div", {class:"cta"}, [
-      el("div", null, [el("b", {text:"Savolingiz bormi?"}), el("p", {text: DATA.bot ? "Botga yozing yoki kanalda so'rang." : "Kanalda so'rang — javob beramiz."})]),
-      el("a", {class:"btn red sm", href:link, target:"_blank", rel:"noopener", text: DATA.bot ? "Botga yozish" : "Kanalga o'tish"})
+      el("div", null, [el("b", {text:t("ask")}), el("p", {text: DATA.bot ? t("askBot") : t("askCh")})]),
+      el("a", {class:"btn red", href:botLink(), target:"_blank", rel:"noopener", text: DATA.bot ? t("writeBot") : t("goCh")})
     ]);
   }
 
   // ---------- pages ----------
   function pageHome(){
-    var shown = MUSCLES.filter(function(m){ return !m.optional || exOf(m.id).length; });
-    var hero = el("header", {class:"hero"}, [el("div", {class:"wrap"}, [
-      el("div", {class:"kicker", text:"Superior Grindset · Gym"}),
-      el("h1", null, ["Bugun ham", el("br"), el("em", {text:"mashq."})]),
-      el("p", {text:"Har bir mashq videosi, texnikasi, set va takrorlari shu yerda. Ovqatlanish va tiklanish bo'yicha qisqa, amaliy ma'lumotlar."}),
-      el("div", {class:"board"}, [
-        el("div", null, [el("b", {text:String(shown.length)}), el("span", {text:"Mushak"})]),
-        el("div", null, [el("b", {text:String(DATA.exercises.length)}), el("span", {text:"Mashq"})]),
-        el("div", null, [el("b", {text:String(DATA.posts.length)}), el("span", {text:"Post"})])
-      ])
-    ]), el("div", {class:"tape", "aria-hidden":"true"})]);
+    var posts = sortedPosts(), shown = shownMuscles();
+    var hero = el("header", {class:"hero"}, [
+      el("div", {class:"wrap"}, [
+        el("div", {class:"txt"}, [
+          el("div", {class:"kicker", text:t("kicker")}),
+          el("h1", null, [t("heroA"), el("br"), el("span", {class:"skew", text:t("heroB")})]),
+          el("p", {text:t("heroP")}),
+          el("div", {class:"btns"}, [
+            el("a", {class:"btn", href:"#/mashqlar", text:t("seeWorkouts")}),
+            el("a", {class:"btn o", href:DATA.channel, target:"_blank", rel:"noopener", text:t("tgChannel")})
+          ]),
+          el("div", {class:"stats"}, [
+            el("div", null, [el("b", {text:String(shown.length)}), el("span", {text:t("stMuscles")})]),
+            el("div", null, [el("b", {text:String(DATA.exercises.map(function(e){ return e.video; }).filter(function(v, i, arr){ return arr.indexOf(v) === i; }).length)}), el("span", {text:t("stVideos")})]),
+            el("div", null, [el("b", {text:String(DATA.posts.length)}), el("span", {text:t("stPosts")})])
+          ])
+        ]),
+        el("div", {class:"shot", bg:"bilim.jpg", role:"img", "aria-label":"Superior Grindset"})
+      ]),
+      marquee()
+    ]);
 
     var resHost = el("div");
     var search = el("section", {class:"sec"}, [
-      el("input", {class:"search", id:"q", type:"search", placeholder:"Qidirish: bench press, protein, oyoq…", "aria-label":"Qidirish", value:st.q,
+      el("input", {class:"search", id:"q", type:"search", placeholder:t("search"), "aria-label":t("search"), value:st.q,
         oninput:function(ev){ st.q = ev.target.value; fillResults(resHost); }}),
       resHost
     ]);
     fillResults(resHost);
 
     var tiles = el("section", {class:"sec"}, [
-      el("div", {class:"sec-h"}, [el("h2", {text:"Mushak guruhlari"}), el("span", {class:"sub", text:"Guruhni tanlang"})]),
-      el("div", {class:"tiles"}, shown.map(function(m){
-        var n = exOf(m.id).length;
-        return el("a", {class:"tile", href:"#/m/" + m.id}, [
-          el("div", {class:"ghost", "aria-hidden":"true", text:m.name.charAt(0)}),
-          el("div", {class:"top"}, [el("span", {text: n + " ta mashq"}), el("span", {text:"→"})]),
-          el("div", null, [el("div", {class:"nm", text:m.name}), el("div", {class:"uz", text:m.uz})])
-        ]);
-      }))
+      el("div", {class:"sec-h"}, [el("h2", {class:"t", text:t("muscleGroups")}), el("span", {class:"sub", text:t("pickGroup")})]),
+      tileGrid(shown)
     ]);
+    var quote = el("section", {class:"quote"}, [
+      el("div", {class:"q"}, [t("quoteA"), " ", el("span", {class:"skew", text:t("quoteB")})]),
+      el("p", {text:t("quoteP")})
+    ]);
+    var latest = el("section", {class:"sec"}, [
+      el("div", {class:"sec-h"}, [el("h2", {class:"t", text:t("latest")}), el("a", {class:"more", href:"#/bilim", text:t("all")})]),
+      el("div", {class:"plist", style:"border-top:0"}, posts.slice(0, 4).map(postRow))
+    ]);
+    var about = el("section", {class:"about"}, [
+      el("div", {class:"img", bg:"about.jpg", role:"img", "aria-label":"Superior Grindset"}),
+      el("div", {class:"txt"}, [
+        el("div", {class:"kick", text:"Superior Grindset"}),
+        el("h2", null, [t("aboutA"), " ", el("em", {text:t("aboutB")})]),
+        el("p", {text:t("aboutP")}),
+        el("div", {class:"chain"}, ["Discipline","Knowledge","Training","Nutrition","Progress"].reduce(function(a, w, i){ if (i) a.push(el("i", {text:"→"})); a.push(w); return a; }, [])),
+        el("div", null, [el("a", {class:"btn red", href:DATA.channel, target:"_blank", rel:"noopener", text:t("subscribe")})])
+      ])
+    ]);
+    return [hero, page([search, tiles, quote, latest, about], 56)];
+  }
 
-    var latest = sortedPosts().slice(0, 3);
-    var posts = latest.length ? el("section", {class:"sec"}, [
-      el("div", {class:"sec-h"}, [el("h2", {text:"Oxirgi postlar"}), el("a", {class:"more", href:"#/bilim", text:"Barchasi →"})]),
-      el("div", {class:"plist"}, latest.map(postRow))
-    ]) : null;
-
-    return [hero, page([search, tiles, posts], 40)];
+  function tileGrid(list){
+    return el("div", {class:"tiles"}, list.map(function(m){
+      var n = exOf(m.id).length, sub = muscleSub(m.id);
+      return el("a", {class:"tile", href:"#/m/" + m.id}, [
+        el("div", {class:"ghost", "aria-hidden":"true", text:m.name.charAt(0)}),
+        el("div", {class:"top"}, [el("span", {text: n + t("exCount")}), el("span", {text:"→"})]),
+        el("div", null, [el("div", {class:"nm", text:m.name}), sub ? el("div", {class:"uz", text:sub}) : null])
+      ]);
+    }));
   }
 
   function fillResults(host){
@@ -336,43 +520,65 @@ footer b{font-family:var(--label);font-weight:800;letter-spacing:.2em;text-trans
     if (q.length < 2){ host.replaceChildren(); return; }
     var hits = [];
     DATA.exercises.forEach(function(e){
-      var m = MBY[e.muscle] || {name:"", uz:""};
-      if ((e.name + " " + m.name + " " + m.uz + " " + (e.body || "")).toLowerCase().indexOf(q) !== -1)
-        hits.push(el("a", {href:"#/ex/" + encodeURIComponent(e.id)}, [el("b", {text:e.name}), el("span", {text:"Mashq · " + m.name})]));
+      var m = MBY[e.muscle] || {name:""};
+      var hay = [e.name, e.name_ru, e.name_en, m.name, T.uz.muscles[e.muscle], T.ru.muscles[e.muscle], e.body, e.body_ru, e.body_en].join(" ").toLowerCase();
+      if (hay.indexOf(q) !== -1) hits.push(el("a", {href:"#/ex/" + encodeURIComponent(e.id)}, [el("b", {text:tx(e, "name")}), el("span", {text:t("exercise") + " · " + m.name})]));
     });
     DATA.posts.forEach(function(p){
-      if ((p.title + " " + p.body).toLowerCase().indexOf(q) !== -1)
-        hits.push(el("a", {href:"#/post/" + encodeURIComponent(p.id)}, [el("b", {text:p.title}), el("span", {text:(CATS[p.cat] || p.cat)})]));
+      var hay = [p.title, p.title_ru, p.title_en, p.body, p.body_ru, p.body_en].join(" ").toLowerCase();
+      if (hay.indexOf(q) !== -1) hits.push(el("a", {href:"#/post/" + encodeURIComponent(p.id)}, [el("b", {text:tx(p, "title")}), el("span", {text:catName(p.cat)})]));
     });
-    host.replaceChildren(hits.length ? el("div", {class:"res"}, hits) : el("div", {class:"empty", text:"Hech narsa topilmadi."}));
+    host.replaceChildren(hits.length ? el("div", {class:"res"}, hits) : el("div", {class:"empty", text:t("nothing")}));
+  }
+
+  function pageMashqlar(){
+    return [page([
+      el("div", {class:"page-h"}, [el("small", {text:t("wSmall")}), el("h1", {text:t("wTitle")})]),
+      tileGrid(shownMuscles())
+    ])];
   }
 
   function exCard(e){
     var emb = embed(e.video), chips = [];
     if (e.sets || e.reps) chips.push(el("span", {class:"chip red", text:(e.sets || "?") + " × " + (e.reps || "?")}));
-    if (e.rest) chips.push(el("span", {class:"chip", text:"Dam: " + e.rest}));
+    if (e.rest) chips.push(el("span", {class:"chip", text:t("restShort") + e.rest}));
     return el("a", {class:"card", href:"#/ex/" + encodeURIComponent(e.id)}, [
       el("div", {class:"thumb"}, [
         emb && emb.thumb ? el("img", {src:emb.thumb, alt:"", loading:"lazy"}) : null,
         el("div", {class:"play", "aria-hidden":"true"}),
-        el("span", {class:"pl", text: emb ? emb.platform : "Video"})
+        el("span", {class:"pl", text: emb ? emb.platform : "Video"}),
+        el("span", {class:"src src-" + srcOf(e), text:t("srcTitle")[srcOf(e)]})
       ]),
-      el("div", {class:"bd"}, [el("h3", {text:e.name}), chips.length ? el("div", {class:"chips"}, chips) : null])
+      el("div", {class:"bd"}, [el("h3", {text:tx(e, "name")}), e.author ? el("div", {class:"by", text:t("coach") + ": " + e.author}) : null, chips.length ? el("div", {class:"chips"}, chips) : null])
     ]);
   }
 
   function pageMuscle(id){
     var m = MBY[id];
     if (!m) return pageNotFound();
-    var list = exOf(id);
+    var all = exOf(id);
+    var counts = {}; SOURCES.forEach(function(k){ counts[k] = all.filter(function(e){ return srcOf(e) === k; }).length; });
+    var cur = st.src[id];
+    if (!cur){ cur = SOURCES.filter(function(k){ return counts[k]; })[0] || "trainer"; }
+    var list = all.filter(function(e){ return srcOf(e) === cur; });
+    var tabs = el("div", {class:"srctabs", role:"tablist"}, SOURCES.map(function(k, i){
+      return el("button", {type:"button", role:"tab", class:"srctab", "aria-selected":String(k === cur), onclick:function(){ st.src[id] = k; render(); }}, [
+        el("span", {class:"n", text:"0" + (i + 1)}),
+        el("b", {text:t("srcTitle")[k]}),
+        el("span", {class:"c", text:counts[k] + " video"})
+      ]);
+    }));
     return [page([
-      el("div", {class:"page-h"}, [el("a", {class:"back", href:"#/", text:"← Barcha mushaklar"}), el("h1", null, [el("small", {text:m.uz}), m.name])]),
-      list.length ? el("div", {class:"cards"}, list.map(exCard)) : el("div", {class:"empty", text:"Bu guruhda hozircha mashq yo'q. Tez orada qo'shiladi."})
-    ])];
+      el("a", {class:"back", href:"#/mashqlar", text:t("allMuscles")}),
+      el("div", {class:"page-h"}, [muscleSub(id) ? el("small", {text:muscleSub(id)}) : null, el("h1", {text:m.name})]),
+      tabs,
+      el("p", {class:"srcdesc", text:t("srcDesc")[cur]}),
+      list.length ? el("div", {class:"cards"}, list.map(exCard)) : el("div", {class:"empty", text:t("noSrc")})
+    ], 24)];
   }
 
   function player(emb){
-    if (!emb) return el("div", {class:"player"}, [el("div", {class:"err", text:"Videoni ochib bo'lmadi."})]);
+    if (!emb) return el("div", {class:"player"}, [el("div", {class:"err", text:t("noVideo")})]);
     if (emb.kind === "telegram")
       return el("div", {class:"player"}, [el("iframe", {class:"tg", src:emb.src, title:"Video", scrolling:"no"})]);
     var inner = emb.kind === "file"
@@ -384,76 +590,77 @@ footer b{font-family:var(--label);font-weight:800;letter-spacing:.2em;text-trans
   function pageExercise(id){
     var e = DATA.exercises.filter(function(x){ return String(x.id) === id; })[0];
     if (!e) return pageNotFound();
-    var m = MBY[e.muscle] || {name:e.muscle, uz:""};
+    var m = MBY[e.muscle] || {name:e.muscle};
     var specs = (e.sets || e.reps || e.rest) ? el("div", {class:"specs"}, [
-      el("div", null, [el("b", {text:e.sets || "—"}), el("span", {text:"Set"})]),
-      el("div", null, [el("b", {text:e.reps || "—"}), el("span", {text:"Takror"})]),
-      el("div", null, [el("b", {text:e.rest || "—"}), el("span", {text:"Dam olish"})])
+      el("div", null, [el("b", {text:e.sets || "—"}), el("span", {text:t("sets")})]),
+      el("div", null, [el("b", {text:e.reps || "—"}), el("span", {text:t("reps")})]),
+      el("div", null, [el("b", {text:e.rest || "—"}), el("span", {text:t("rest")})])
     ]) : null;
+    var body = tx(e, "body");
     return [page([
       el("a", {class:"back", href:"#/m/" + e.muscle, text:"← " + m.name}),
       el("div", {class:"detail"}, [
-        player(embed(e.video)),
-        el("div", {class:"side"}, [
-          el("div", {class:"kicker", text:m.name + " · " + m.uz}),
-          el("h1", {text:e.name}),
-          specs,
-          e.body ? el("p", {class:"text", text:e.body}) : null
-        ])
+        el("div", {class:"stack", style:"gap:10px"}, [
+          player(embed(e.video)),
+          el("a", {class:"openlink", href:e.video, target:"_blank", rel:"noopener", text:"↗ " + t("openPre") + ((embed(e.video) || {}).platform || "Video") + (t("openIn") ? "'" + t("openIn") : "")})
+        ]),
+        el("div", {class:"side"}, [el("div", {class:"kick", text:m.name + (muscleSub(e.muscle) ? " · " + muscleSub(e.muscle) : "")}), el("h1", {text:tx(e, "name")}), el("div", {class:"chips"}, [el("span", {class:"chip src-" + srcOf(e), text:t("srcTitle")[srcOf(e)]}), e.author ? el("span", {class:"chip", text:t("coach") + ": " + e.author}) : null]), specs, body ? el("p", {class:"text", text:body}) : null])
       ]),
       askBox()
     ], 24)];
   }
 
-  function sortedPosts(){
-    return DATA.posts.slice().sort(function(a, b){ return (b.date || "").localeCompare(a.date || ""); });
-  }
   function postRow(p){
-    var body = (p.body || "").replace(/\s+/g, " ");
+    var body = tx(p, "body").replace(/\s+/g, " "), stat = tx(p, "stat");
     return el("a", {class:"prow", href:"#/post/" + encodeURIComponent(p.id)}, [
-      el("div", {class:"meta"}, [el("span", {class:"k", text:CATS[p.cat] || p.cat}), el("span", {text:fmtDate(p.date)})]),
-      el("h3", {text:p.title}),
-      el("p", {text: body.slice(0, 140) + (body.length > 140 ? "…" : "")}),
-      p.stat ? el("div", {class:"big"}, [p.stat, p.stat_note ? el("small", {text:p.stat_note}) : null]) : null
+      el("div", {class:"meta"}, [el("span", {class:"k", text:catName(p.cat)}), el("span", {text:fmtDate(p.date)})]),
+      el("h3", {text:tx(p, "title")}),
+      el("p", {text: body.slice(0, 130) + (body.length > 130 ? "…" : "")}),
+      stat ? el("div", {class:"big"}, [stat, tx(p, "stat_note") ? el("small", {text:tx(p, "stat_note")}) : null]) : null
     ]);
   }
 
   function pageBilim(){
     var list = sortedPosts().filter(function(p){ return st.postFilter === "all" || p.cat === st.postFilter; });
-    var f = [["all","Hammasi"]].concat(Object.keys(CATS).map(function(k){ return [k, CATS[k]]; }));
+    var f = [["all", t("allCat")]].concat(Object.keys(T.uz.cats).map(function(k){ return [k, catName(k)]; }));
     return [page([
-      el("div", {class:"page-h"}, [el("h1", null, [el("small", {text:"Ovqatlanish · Tiklanish · Nazariya"}), "Bilim"])]),
+      el("div", {class:"bilim-head"}, [
+        el("div", null, [el("h1", null, [t("kA"), " ", el("span", {class:"skew", text:t("kB")})]), el("p", {text:t("kP")})]),
+        el("div", {class:"img", bg:"cover.jpg", role:"img", "aria-label":"Superior Grindset"})
+      ]),
       el("div", {class:"filters"}, f.map(function(x){
         return el("button", {type:"button", "aria-pressed":String(st.postFilter === x[0]), text:x[1], onclick:function(){ st.postFilter = x[0]; render(); }});
       })),
-      list.length ? el("div", {class:"plist"}, list.map(postRow)) : el("div", {class:"empty", text:"Bu bo'limda hozircha post yo'q."})
-    ], 22)];
+      list.length ? el("div", {class:"plist"}, list.map(postRow)) : el("div", {class:"empty", text:t("noPosts")})
+    ], 24)];
   }
 
   function pagePost(id){
     var p = DATA.posts.filter(function(x){ return String(x.id) === id; })[0];
     if (!p) return pageNotFound();
+    var stat = tx(p, "stat");
     var kids = [
-      el("a", {class:"back", href:"#/bilim", text:"← Bilim"}),
-      el("div", {class:"page-h"}, [el("h1", {style:"font-size:clamp(40px,8vw,80px)"}, [el("small", {text:(CATS[p.cat] || p.cat) + " · " + fmtDate(p.date)}), p.title])])
+      el("a", {class:"back", href:"#/bilim", text:t("backK")}),
+      el("div", {class:"meta", text:catName(p.cat) + " · " + fmtDate(p.date)}),
+      el("h1", {text:tx(p, "title")})
     ];
-    if (p.stat) kids.push(el("div", {class:"specs", style:"grid-template-columns:1fr;max-width:320px"}, [el("div", null, [el("b", {text:p.stat, style:"color:var(--red)"}), el("span", {text:p.stat_note || ""})])]));
-    kids.push(el("p", {class:"text", style:"font-size:17px", text:p.body}));
+    if (stat) kids.push(el("div", {class:"stat-hero"}, [el("b", {text:stat}), el("span", {text:tx(p, "stat_note")})]));
+    kids.push(el("p", {class:"text", text:tx(p, "body")}));
     kids.push(askBox());
-    return [page(kids, 22, 820)];
+    return [page(kids, 22, "article")];
   }
 
   function pageNotFound(){
-    return [page([el("div", {class:"empty"}, ["Sahifa topilmadi. ", el("a", {href:"#/", text:"Bosh sahifaga"})])])];
+    return [page([el("div", {class:"empty"}, [t("notFound"), el("a", {href:"#/", text:t("toHome")})])])];
   }
 
-  // ---------- render ----------
   var lastKey = null;
   function render(){
     var r = route(), key = r.page + "/" + r.arg;
     if (key !== lastKey){ lastKey = key; window.scrollTo(0, 0); }
     var body;
-    if (r.page === "m") body = pageMuscle(r.arg);
+    if (r.page === "mashqlar") body = pageMashqlar();
+    else if (r.page === "m") body = pageMuscle(r.arg);
     else if (r.page === "ex") body = pageExercise(r.arg);
     else if (r.page === "bilim") body = pageBilim();
     else if (r.page === "post") body = pagePost(r.arg);
@@ -463,7 +670,6 @@ footer b{font-family:var(--label);font-weight:800;letter-spacing:.2em;text-trans
   }
   window.addEventListener("hashchange", render);
 
-  // Telegram post videosi balandligini moslash
   window.addEventListener("message", function(ev){
     if (ev.origin !== "https://t.me") return;
     var d; try { d = typeof ev.data === "string" ? JSON.parse(ev.data) : ev.data; } catch(e){ return; }
@@ -471,11 +677,12 @@ footer b{font-family:var(--label);font-weight:800;letter-spacing:.2em;text-trans
     document.querySelectorAll("iframe.tg").forEach(function(f){ if (f.contentWindow === ev.source) f.style.height = d.height + "px"; });
   });
 
+  document.documentElement.lang = LANG;
   fetch("data.json", {cache:"no-cache"}).then(function(r){ return r.json(); }).then(function(d){
     DATA = Object.assign(DATA, d);
     render();
   }).catch(function(){
-    document.getElementById("app").replaceChildren(el("div", {class:"wrap loading"}, ["Ma'lumotlarni yuklab bo'lmadi. Sahifani yangilang."]));
+    document.getElementById("app").replaceChildren(el("div", {class:"wrap loading"}, [t("loadErr")]));
   });
 })();
 </script>
