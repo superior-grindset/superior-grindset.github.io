@@ -1,0 +1,131 @@
+{
+  "channel": "https://t.me/superior_grindset",
+  "bot": "",
+  "exercises": [
+    {
+      "id": "chest",
+      "muscle": "chest",
+      "name": "Chest mashqlari",
+      "video": "https://t.me/superior_grindset/261",
+      "sets": "",
+      "reps": "",
+      "rest": "",
+      "body": ""
+    },
+    {
+      "id": "back",
+      "muscle": "back",
+      "name": "Back mashqlari",
+      "video": "https://t.me/superior_grindset/276",
+      "sets": "",
+      "reps": "",
+      "rest": "",
+      "body": ""
+    },
+    {
+      "id": "legs",
+      "muscle": "legs",
+      "name": "Legs mashqlari",
+      "video": "https://t.me/superior_grindset/289",
+      "sets": "",
+      "reps": "",
+      "rest": "",
+      "body": ""
+    },
+    {
+      "id": "shoulders",
+      "muscle": "shoulders",
+      "name": "Shoulders mashqlari",
+      "video": "https://t.me/superior_grindset/299",
+      "sets": "",
+      "reps": "",
+      "rest": "",
+      "body": ""
+    },
+    {
+      "id": "biceps",
+      "muscle": "biceps",
+      "name": "Biceps mashqlari",
+      "video": "https://t.me/superior_grindset/284",
+      "sets": "",
+      "reps": "",
+      "rest": "",
+      "body": ""
+    },
+    {
+      "id": "triceps",
+      "muscle": "triceps",
+      "name": "Triceps mashqlari",
+      "video": "https://t.me/superior_grindset/265",
+      "sets": "",
+      "reps": "",
+      "rest": "",
+      "body": ""
+    }
+  ],
+  "posts": [
+    {
+      "id": "protein",
+      "cat": "bilim",
+      "date": "2026-09-26",
+      "title": "Protein — qancha kerak?",
+      "stat": "1,6–2,2 g",
+      "stat_note": "har 1 kg vaznga",
+      "body": "Protein mushak tiklanishi va o'sishi uchun asosiy material.\n\nMashq qiladigan odamga kuniga taxminan 1,6–2,2 g kerak, har 1 kg vazn uchun.\nMasalan, 70 kg bo'lsang, kuniga 110–150 g protein.\n\nArzon manbalar:\n🥚 Tuxum — 1 dona ≈ 6 g\n🍗 Tovuq ko'kragi (pishgan) — 100 g ≈ 30 g\n🧀 Tvorog — 100 g ≈ 17 g\n🫘 Loviya, no'xat (qaynatilgan) — 100 g ≈ 8 g\n\n💡 Proteinni bir mahalda emas, kun davomida 3–4 ovqatga bo'lib ye."
+    },
+    {
+      "id": "suv",
+      "cat": "bilim",
+      "date": "2026-09-27",
+      "title": "Suv — kuniga qancha?",
+      "stat": "30–35 ml",
+      "stat_note": "har 1 kg vaznga",
+      "body": "Taxminan har 1 kg vaznga 30–35 ml.\nMasalan, 70 kg bo'lsang — kuniga 2–2,5 litr.\nMashg'ulot kuni har 1 soat mashq uchun yana 0,5–1 litr qo'sh.\n\n💡 Oson tekshiruv: siydik rangi och sariq bo'lsa — yetarli ichyapsan."
+    },
+    {
+      "id": "kaloriya",
+      "cat": "ovqat",
+      "date": "2026-09-28",
+      "title": "Ozish va massa — oddiy qilib",
+      "stat": "300–500",
+      "stat_note": "kcal defitsit",
+      "body": "Ozish: kuniga sarflaganingdan 300–500 kcal kam ye.\nMassa: 200–300 kcal ko'p ye.\n\n1 g protein = 4 kcal · 1 g uglevod = 4 kcal · 1 g yog' = 9 kcal\n\n💡 Tarozini har kuni emas, haftalik o'rtacha bilan kuzat."
+    },
+    {
+      "id": "uyqu",
+      "cat": "bilim",
+      "date": "2026-09-29",
+      "title": "Mushak zalda emas, uyquda o'sadi",
+      "stat": "7–9 soat",
+      "stat_note": "kuniga uyqu",
+      "body": "Kuniga 7–9 soat uxla.\nKam uyqu → kuch pasayadi, tiklanish sekinlashadi, ishtaha oshadi.\n\n💡 Har kuni bir vaqtda yot, uxlashdan 30 daqiqa oldin telefonni qo'y."
+    },
+    {
+      "id": "oldin",
+      "cat": "ovqat",
+      "date": "2026-09-30",
+      "title": "Mashg'ulotdan oldin nima yeyish kerak?",
+      "stat": "1–3 soat",
+      "stat_note": "oldin",
+      "body": "1–3 soat oldin: uglevod + ozgina protein.\nMisol: guruch + tovuq, suli + banan + tuxum.\n30–60 daqiqa qolgan bo'lsa: 1 ta banan yetadi.\n\n💡 Yog'li va og'ir ovqatni mashg'ulot oldidan yema."
+    },
+    {
+      "id": "keyin",
+      "cat": "ovqat",
+      "date": "2026-10-01",
+      "title": "Mashg'ulotdan keyin nima yeyish kerak?",
+      "stat": "20–40 g",
+      "stat_note": "protein",
+      "body": "Protein (20–40 g) + uglevod.\nMisol: tovuq + guruch, tvorog + meva, tuxum + non.\n\n💡 Darhol yeyish shart emas — 1–2 soat ichida normal ovqatlan."
+    },
+    {
+      "id": "davomiylik",
+      "cat": "bilim",
+      "date": "2026-10-02",
+      "title": "Natija qanday keladi?",
+      "stat": "4–8 hafta",
+      "stat_note": "birinchi o'zgarishlar",
+      "body": "Bir kunlik zo'r mashg'ulot emas, har haftalik davomiylik.\nHaftada 3–4 mashg'ulot + yetarli protein + uyqu.\nBirinchi o'zgarishlar odatda 4–8 haftada ko'rinadi.\n\n💡 Har hafta bir xil sharoitda rasmga tush — tarozidan ko'ra aniqroq."
+    }
+  ]
+}
