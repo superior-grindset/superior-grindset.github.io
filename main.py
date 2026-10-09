@@ -75,6 +75,7 @@ main_menu = ReplyKeyboardMarkup(
     keyboard=[
         [KeyboardButton(text="🏋️ Trening")],
         [KeyboardButton(text="🌐 Sayt"), KeyboardButton(text="ℹ️ Kanal haqida")],
+        [KeyboardButton(text="✍️ Savol berish")],
     ],
     resize_keyboard=True,
 )
@@ -245,6 +246,11 @@ async def site(message: Message):
     )
 
 
+@dp.message(F.text == "✍️ Savol berish")
+async def ask_hint(message: Message):
+    await message.answer("✍️ Savolingizni shu yerga yozing (matn, rasm yoki ovozli xabar). Javobni shu botda olasiz.")
+
+
 @dp.message(F.text == "⬅️ Orqaga")
 async def back(message: Message):
     await message.answer("🏠 Asosiy menyu", reply_markup=main_menu)
@@ -326,9 +332,62 @@ async def publish_now(message: Message, command: CommandObject):
         await message.answer(f"❗ Yuborilmadi: {e}\nBot kanalda admin ekanini tekshiring.")
 
 
+# ---- SAVOLLAR: obunachi → egasi, egasi "Reply" qilsa → obunachiga ----
+
+ASK_TAG = "🆔 "
+
+
+@dp.message(F.reply_to_message, F.from_user.id.in_(list(OWNER_IDS)), F.chat.type == "private")
+async def owner_reply(message: Message):
+    src = message.reply_to_message
+    text = (src.text or src.caption or "")
+    uid = None
+    for line in text.splitlines():
+        if line.startswith(ASK_TAG):
+            try:
+                uid = int(line[len(ASK_TAG):].strip())
+            except ValueError:
+                pass
+    if not uid:
+        await message.answer("Javob berish uchun savol xabariga (🆔 qatori bor xabarga) Reply qiling.")
+        return
+    try:
+        await bot.send_message(uid, "💬 SUPERIOR GRINDSET javobi:")
+        await message.copy_to(uid)
+        await message.answer("✅ Javob yuborildi.")
+    except Exception as e:
+        await message.answer(f"❗ Yuborilmadi: {e}")
+
+
+@dp.message(F.chat.type == "private")
+async def question(message: Message):
+    u = message.from_user
+    if u and u.id in OWNER_IDS:
+        await message.answer("ℹ️ Obunachiga javob berish uchun uning savoliga Reply qiling.")
+        return
+    name = u.full_name if u else "Noma'lum"
+    uname = f" (@{u.username})" if u and u.username else ""
+    head = f"❓ Yangi savol\n👤 {name}{uname}\n{ASK_TAG}{u.id}"
+    sent = 0
+    for oid in OWNER_IDS:
+        try:
+            if message.text:
+                await bot.send_message(oid, f"{head}\n\n{message.text}")
+            else:  # rasm, video, ovozli xabar: avval sarlavha, keyin o'zi
+                h = await bot.send_message(oid, head)
+                await message.copy_to(oid, reply_to_message_id=h.message_id)
+            sent += 1
+        except Exception:
+            logging.exception("Savol egaga yuborilmadi")
+    if sent:
+        await message.answer("✅ Savolingiz qabul qilindi. Tez orada javob beramiz.", reply_markup=main_menu)
+    else:
+        await message.answer("❗ Hozir savolni yuborib bo'lmadi, birozdan keyin qayta urinib ko'ring.")
+
+
 @dp.message()
 async def unknown(message: Message):
-    await message.answer("❗ Iltimos, menyudagi tugmalardan foydalaning.")
+    pass  # guruh/kanaldagi boshqa xabarlarga javob bermaydi
 
 # ==========================
 # MAIN
