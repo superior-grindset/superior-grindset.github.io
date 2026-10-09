@@ -669,6 +669,16 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
     else body = pageHome();
     var app = document.getElementById("app");
     app.replaceChildren.apply(app, [nav(r)].concat(body, [footer()]));
+    track(r);
+  }
+  // Statistika (GoatCounter): har bir sahifa alohida hisoblanadi — /, /mashqlar, /m/chest, /post/protein ...
+  var lastTracked = null;
+  function track(r){
+    var path = "/" + (r.page === "home" ? "" : r.page + (r.arg ? "/" + r.arg : ""));
+    if (path === lastTracked) return;
+    if (!window.goatcounter || !window.goatcounter.count){ setTimeout(function(){ track(r); }, 800); return; }
+    lastTracked = path;
+    try { window.goatcounter.count({path: path, title: document.title}); } catch(e){}
   }
   window.addEventListener("hashchange", render);
 
@@ -695,5 +705,6 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
   });
 })();
 </script>
+<script data-goatcounter="https://superiorgrindset.goatcounter.com/count" data-goatcounter-settings='{"no_onload": true}' async src="//gc.zgo.at/count.js"></script>
 </body>
 </html>
