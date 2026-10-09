@@ -122,6 +122,62 @@ def save_posted() -> None:
 
 posted = load_posted()
 
+# ==========================
+# BOT STATISTIKASI
+# ==========================
+# users.json: {"<id>": {"name", "username", "first": "YYYY-MM-DD", "last": "YYYY-MM-DD"}}
+# stats.json: {"questions": {"YYYY-MM-DD": n}}
+# Eslatma: Railway bepulda bot qayta deploy qilinsa bu fayllar o'chishi mumkin.
+USERS_FILE = "users.json"
+STATS_FILE = "stats.json"
+
+
+def _load(path: str, default):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return default
+
+
+def _save(path: str, data) -> None:
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
+    except Exception:
+        logging.exception("%s yozilmadi", path)
+
+
+users = _load(USERS_FILE, {})
+stats = _load(STATS_FILE, {"questions": {}})
+
+
+def today() -> str:
+    return datetime.now(TZ).date().isoformat()
+
+
+async def track_user(handler, event, data):
+    """Har bir shaxsiy xabarda foydalanuvchini eslab qoladi; yangi bo'lsa egaga xabar beradi."""
+    u = getattr(event, "from_user", None)
+    if u and not u.is_bot and event.chat.type == "private" and u.id not in OWNER_IDS:
+        key = str(u.id)
+        d = today()
+        rec = users.get(key)
+        if rec is None:
+            users[key] = {"name": u.full_name, "username": u.username or "", "first": d, "last": d}
+            _save(USERS_FILE, users)
+            uname = f" (@{u.username})" if u.username else ""
+            await notify_owners(f"👋 Yangi foydalanuvchi: {u.full_name}{uname}\nJami: {len(users)} ta")
+        elif rec.get("last") != d:
+            rec["last"] = d
+            rec["name"] = u.full_name
+            rec["username"] = u.username or ""
+            _save(USERS_FILE, users)
+    return await handler(event, data)
+
+
+dp.message.outer_middleware(track_user)
+
 
 def site_base() -> str:
     return SITE_URL.rstrip("/") if SITE_URL.startswith("https://") else ""
@@ -332,6 +388,37 @@ async def publish_now(message: Message, command: CommandObject):
         await message.answer(f"❗ Yuborilmadi: {e}\nBot kanalda admin ekanini tekshiring.")
 
 
+@dp.message(Command("stat"))
+async def stat(message: Message):
+    if not is_owner(message):
+        return
+    d = today()
+    week_ago = (datetime.now(TZ) - timedelta(days=6)).date().isoformat()
+    total = len(users)
+    new_today = sum(1 for r in users.values() if r.get("first") == d)
+    new_week = sum(1 for r in users.values() if r.get("first", "") >= week_ago)
+    active_today = sum(1 for r in users.values() if r.get("last") == d)
+    active_week = sum(1 for r in users.values() if r.get("last", "") >= week_ago)
+    q = stats.get("questions", {})
+    q_today = q.get(d, 0)
+    q_week = sum(v for k, v in q.items() if k >= week_ago)
+    q_all = sum(q.values())
+    last = sorted(users.values(), key=lambda r: r.get("first", ""), reverse=True)[:5]
+    last_lines = "\n".join(
+        f"• {r.get('name', '?')}" + (f" (@{r['username']})" if r.get("username") else "") + f" — {r.get('first', '')}"
+        for r in last
+    ) or "—"
+    await message.answer(
+        "📊 BOT STATISTIKASI\n\n"
+        f"👥 Jami foydalanuvchi: {total}\n"
+        f"🆕 Yangi: bugun {new_today} · 7 kunda {new_week}\n"
+        f"🔥 Faol: bugun {active_today} · 7 kunda {active_week}\n"
+        f"❓ Savollar: bugun {q_today} · 7 kunda {q_week} · jami {q_all}\n\n"
+        f"Oxirgi yangi foydalanuvchilar:\n{last_lines}\n\n"
+        f"🌐 Sayt statistikasi: https://superiorgrindset.goatcounter.com"
+    )
+
+
 # ---- SAVOLLAR: obunachi → egasi, egasi "Reply" qilsa → obunachiga ----
 
 ASK_TAG = "🆔 "
@@ -380,6 +467,9 @@ async def question(message: Message):
         except Exception:
             logging.exception("Savol egaga yuborilmadi")
     if sent:
+        d = today()
+        stats.setdefault("questions", {})[d] = stats.get("questions", {}).get(d, 0) + 1
+        _save(STATS_FILE, stats)
         await message.answer("✅ Savolingiz qabul qilindi. Tez orada javob beramiz.", reply_markup=main_menu)
     else:
         await message.answer("❗ Hozir savolni yuborib bo'lmadi, birozdan keyin qayta urinib ko'ring.")
