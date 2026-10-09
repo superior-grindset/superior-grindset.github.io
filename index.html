@@ -62,8 +62,10 @@ img{max-width:100%;display:block}
 .hero .shot{min-height:520px;background:#111 center 25%/cover no-repeat;clip-path:polygon(14% 0,100% 0,86% 100%,0 100%)}
 @media (max-width:820px){.hero .shot{min-height:400px;order:-1;margin-inline:-16px;clip-path:polygon(0 0,100% 0,100% 88%,0 100%)}}
 .stats{display:flex;gap:28px;flex-wrap:wrap}
-.stats div b{display:block;font-family:var(--display);font-weight:var(--dw);font-size:44px;line-height:1;color:var(--red);font-variant-numeric:tabular-nums}
-.stats div span{font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:11px}
+.stats a{text-decoration:none;color:inherit;border-bottom:3px solid transparent;padding-bottom:4px;transition:border-color .15s}
+.stats a:hover{border-bottom-color:var(--red)}
+.stats a b{display:block;font-family:var(--display);font-weight:var(--dw);font-size:44px;line-height:1;color:var(--red);font-variant-numeric:tabular-nums}
+.stats a span{font-weight:800;letter-spacing:.14em;text-transform:uppercase;font-size:11px}
 
 .marq{background:var(--ink);color:var(--paper);overflow:hidden;white-space:nowrap;font-family:var(--display);font-weight:var(--dw);font-size:24px;letter-spacing:.06em;padding:12px 0;text-transform:uppercase}
 .marq div{display:inline-block;animation:mq 26s linear infinite}
@@ -461,9 +463,9 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
             el("a", {class:"btn o", href:DATA.channel, target:"_blank", rel:"noopener", text:t("tgChannel")})
           ]),
           el("div", {class:"stats"}, [
-            el("div", null, [el("b", {text:String(shown.length)}), el("span", {text:t("stMuscles")})]),
-            el("div", null, [el("b", {text:String(DATA.exercises.map(function(e){ return e.video; }).filter(function(v, i, arr){ return arr.indexOf(v) === i; }).length)}), el("span", {text:t("stVideos")})]),
-            el("div", null, [el("b", {text:String(DATA.posts.length)}), el("span", {text:t("stPosts")})])
+            el("a", {href:"#/mashqlar"}, [el("b", {text:String(shown.length)}), el("span", {text:t("stMuscles") + " →"})]),
+            el("a", {href:"#/mashqlar"}, [el("b", {text:String(DATA.exercises.map(function(e){ return e.video; }).filter(function(v, i, arr){ return arr.indexOf(v) === i; }).length)}), el("span", {text:t("stVideos") + " →"})]),
+            el("a", {href:"#/bilim"}, [el("b", {text:String(DATA.posts.length)}), el("span", {text:t("stPosts") + " →"})])
           ])
         ]),
         el("div", {class:"shot", bg:"bilim.jpg", role:"img", "aria-label":"Superior Grindset"})
@@ -680,6 +682,13 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
   document.documentElement.lang = LANG;
   fetch("data.json", {cache:"no-cache"}).then(function(r){ return r.json(); }).then(function(d){
     DATA = Object.assign(DATA, d);
+    // Rejalashtirilgan postlar: vaqti (Toshkent) kelmaguncha saytda ko'rinmaydi — bot kanalga shu vaqtda yuboradi
+    var now = Date.now();
+    DATA.posts = (DATA.posts || []).filter(function(p){
+      if (!p.date) return true;
+      var w = Date.parse(p.date + "T" + (p.time || "09:00") + ":00+05:00");
+      return isNaN(w) || w <= now;
+    });
     render();
   }).catch(function(){
     document.getElementById("app").replaceChildren(el("div", {class:"wrap loading"}, [t("loadErr")]));
