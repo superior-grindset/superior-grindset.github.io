@@ -23,6 +23,7 @@ import json
 import logging
 import os
 import time
+from urllib.parse import quote
 from datetime import datetime, timedelta, timezone
 
 import aiohttp
@@ -248,6 +249,19 @@ async def fetch_exercises() -> list:
     return FALLBACK_EXERCISES
 
 
+def site_link(user, path: str = "") -> str:
+    """Botdan saytga havola: ?n=<ism> — sayt salomda ismni ko'rsatadi. Ismsiz bo'lsa bo'sh."""
+    base = site_base()
+    if not base:
+        return ""
+    name = ""
+    if user:
+        name = (users.get(str(user.id)) or {}).get("name", "")
+        if not name and user.id in OWNER_IDS:
+            name = user.first_name or ""
+    return f"{base}/?n={quote(name)}" + (f"#{path}" if path else "")
+
+
 def src_of(e: dict) -> str:
     return e.get("source") if e.get("source") in SOURCE_NAME else "gym"
 
@@ -367,6 +381,8 @@ async def start(message: Message):
         await ask_name(message)
         return
     name = (users.get(str(u.id)) or {}).get("name", "") if u else ""
+    if not name and u and u.id in OWNER_IDS:
+        name = u.first_name or ""
     run_bg(greet(message.chat.id, name))
 
 
@@ -424,7 +440,7 @@ async def site(message: Message):
     if not SITE_URL.startswith("https://"):
         await message.answer("🌐 Sayt tez orada ochiladi.")
         return
-    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="➡️ Saytni ochish", url=SITE_URL)]])
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="➡️ Saytni ochish", url=site_link(message.from_user))]])
     await message.answer(
         "🌐 SUPERIOR GRINDSET SAYTI\n\n"
         "Mashq videolari, texnika, ovqatlanish va foydali ma'lumotlar — hammasi bir joyda.",
@@ -452,7 +468,7 @@ async def muscle(message: Message):
         if n:
             rows.append([InlineKeyboardButton(text=f"{name} · {n}", callback_data=f"v:{mid}:{key}")])
     if site_base():
-        rows.append([InlineKeyboardButton(text="🌐 Saytda ko'rish", url=f"{site_base()}/#/m/{mid}")])
+        rows.append([InlineKeyboardButton(text="🌐 Saytda ko'rish", url=site_link(message.from_user, f"/m/{mid}"))])
     text = f"{title}\n\nQaysi videolarni ko'rasiz?" if ex else f"{title}\n\nBu guruhda hozircha video yo'q. Tez orada qo'shiladi."
     await message.answer(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows) if rows else None)
 

@@ -234,7 +234,7 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
 .quote .q .skew{background:var(--ink);color:#fff}
 .quote p{margin:0;font-weight:700;font-size:18px;max-width:46ch;position:relative;z-index:1}
 /* salom xabarnomasi */
-.hello{position:fixed;left:50%;bottom:24px;z-index:60;transform:translate(-50%,20px);opacity:0;display:flex;align-items:center;gap:14px;width:max-content;max-width:calc(100% - 32px);background:var(--ink);color:var(--paper);padding:14px 18px;border-left:6px solid var(--red);box-shadow:0 10px 30px rgba(0,0,0,.25);transition:opacity .4s,transform .4s;cursor:pointer}
+.hello{position:fixed;left:50%;top:calc(70px + env(safe-area-inset-top,0px));z-index:60;transform:translate(-50%,-20px);opacity:0;display:flex;align-items:center;gap:14px;width:max-content;max-width:calc(100% - 32px);background:var(--ink);color:var(--paper);padding:14px 18px;border-left:6px solid var(--red);box-shadow:0 10px 30px rgba(0,0,0,.25);transition:opacity .4s,transform .4s;cursor:pointer}
 .hello.show{opacity:1;transform:translate(-50%,0)}
 .hello b{display:block;font-family:var(--display);font-weight:var(--dw);font-size:22px;text-transform:uppercase;letter-spacing:.02em;line-height:1.1}
 .hello span{display:block;font-weight:600;font-size:14px;color:#bdb8ae}
@@ -688,18 +688,31 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
   }
   window.addEventListener("hashchange", render);
 
-  // Kirganda "Assalomu alaykum" xabarnomasi — bir necha soniyadan keyin o'zi yo'qoladi (har tashrifda bir marta)
+  // Kirganda "Assalomu alaykum" xabarnomasi — yuqoridan chiqadi, 3 soniyada yo'qoladi.
+  // Botdan kelganda havola ?n=<ism> bilan ochiladi — ism eslab qolinadi va salomda ko'rsatiladi.
   function hello(){
-    try { if (sessionStorage.getItem("sg_hello")) return; sessionStorage.setItem("sg_hello", "1"); } catch(e){}
+    var nm = "", fromBot = false;
+    try {
+      var q = new URLSearchParams(location.search);
+      if (q.has("n")){
+        fromBot = true;
+        nm = (q.get("n") || "").replace(/\s+/g, " ").trim().slice(0, 40);
+        if (nm) localStorage.setItem("sg_name", nm); else localStorage.removeItem("sg_name");
+        history.replaceState(null, "", location.pathname + location.hash);
+      } else {
+        nm = localStorage.getItem("sg_name") || "";
+      }
+    } catch(e){}
+    try { if (!fromBot && sessionStorage.getItem("sg_hello")) return; sessionStorage.setItem("sg_hello", "1"); } catch(e){}
     var box = el("div", {class:"hello", role:"status", "aria-live":"polite"}, [
       el("i", {text:"👋", "aria-hidden":"true"}),
-      el("div", null, [el("b", {text:"Assalomu alaykum!"}), el("span", {text:t("helloSub")})])
+      el("div", null, [el("b", {text: nm ? "Assalomu alaykum, " + nm + "!" : "Assalomu alaykum!"}), el("span", {text:t("helloSub")})])
     ]);
     function close(){ box.classList.remove("show"); setTimeout(function(){ box.remove(); }, 450); }
     box.addEventListener("click", close);
     document.body.appendChild(box);
     requestAnimationFrame(function(){ requestAnimationFrame(function(){ box.classList.add("show"); }); });
-    setTimeout(close, 4500);
+    setTimeout(close, 3000);
   }
 
   window.addEventListener("message", function(ev){
