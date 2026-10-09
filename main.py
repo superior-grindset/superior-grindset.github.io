@@ -29,6 +29,7 @@ import aiohttp
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.types import (
+    CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     KeyboardButton,
@@ -90,15 +91,35 @@ training_menu = ReplyKeyboardMarkup(
     resize_keyboard=True,
 )
 
-# Mushak guruhlari: tugma matni → (sarlavha, kanal posti)
+# Mushak guruhlari: tugma matni → (id, sarlavha). Videolar saytdagi data.json dan olinadi —
+# sayt va bot doim bir xil bo'ladi (3 rejim: trener / premium zal / oddiy zal).
 TRAINING = {
-    "💪 Chest": ("💪 CHEST MASHQLARI", "https://t.me/superior_grindset/261"),
-    "💪 Triceps": ("💪 TRICEPS MASHQLARI", "https://t.me/superior_grindset/265"),
-    "🏋️ Back": ("🏋️ BACK MASHQLARI", "https://t.me/superior_grindset/276"),
-    "💪 Biceps": ("💪 BICEPS MASHQLARI", "https://t.me/superior_grindset/284"),
-    "🦵 Legs": ("🦵 LEGS MASHQLARI", "https://t.me/superior_grindset/289"),
-    "🏋️ Shoulders": ("🏋️ SHOULDERS MASHQLARI", "https://t.me/superior_grindset/299"),
+    "💪 Chest": ("chest", "💪 CHEST — Ko'krak"),
+    "💪 Triceps": ("triceps", "💪 TRICEPS — Tritseps"),
+    "🏋️ Back": ("back", "🏋️ BACK — Orqa"),
+    "💪 Biceps": ("biceps", "💪 BICEPS — Bitseps"),
+    "🦵 Legs": ("legs", "🦵 LEGS — Oyoq"),
+    "🏋️ Shoulders": ("shoulders", "🏋️ SHOULDERS — Yelka"),
 }
+MUSCLE_TITLE = {v[0]: v[1] for v in TRAINING.values()}
+
+SOURCES = [
+    ("trainer", "🎓 Trener videolari", "YouTube'dagi tajribali trenerlardan to'g'ri texnika."),
+    ("premium", "💎 Premium zal", "Mening mashg'ulotlarim — zamonaviy jihozlar bilan."),
+    ("gym", "🏋️ Oddiy zal", "Mening mashg'ulotlarim — oddiy zalda, hamma uchun."),
+]
+SOURCE_NAME = {k: n for k, n, _ in SOURCES}
+SOURCE_DESC = {k: d for k, _, d in SOURCES}
+
+# data.json yuklanmasa ishlatiladigan zaxira (premium zal postlari)
+FALLBACK_EXERCISES = [
+    {"muscle": "chest", "source": "premium", "name": "Ko'krak mashqlari", "video": "https://t.me/superior_grindset/261"},
+    {"muscle": "triceps", "source": "premium", "name": "Tritseps mashqlari", "video": "https://t.me/superior_grindset/265"},
+    {"muscle": "back", "source": "premium", "name": "Orqa (qanot) mashqlari", "video": "https://t.me/superior_grindset/276"},
+    {"muscle": "biceps", "source": "premium", "name": "Bitseps mashqlari", "video": "https://t.me/superior_grindset/284"},
+    {"muscle": "legs", "source": "premium", "name": "Oyoq mashqlari", "video": "https://t.me/superior_grindset/289"},
+    {"muscle": "shoulders", "source": "premium", "name": "Yelka mashqlari", "video": "https://t.me/superior_grindset/299"},
+]
 
 # ==========================
 # KANALGA AVTOMATIK POST
@@ -191,16 +212,42 @@ def when_of(p: dict):
         return None
 
 
-async def fetch_posts() -> list:
+_data_cache = {"t": 0.0, "data": None}
+
+
+async def fetch_data(max_age: int = 0) -> dict:
+    """Saytdagi data.json ni o'qiydi. max_age soniya ichida qayta so'ramaydi."""
+    if _data_cache["data"] is not None and time.time() - _data_cache["t"] < max_age:
+        return _data_cache["data"]
     base = site_base()
     if not base:
-        return []
+        return {}
     url = f"{base}/data.json?t={int(time.time())}"
     async with aiohttp.ClientSession() as s:
         async with s.get(url, timeout=aiohttp.ClientTimeout(total=20)) as r:
             r.raise_for_status()
             data = await r.json(content_type=None)
+    _data_cache.update(t=time.time(), data=data)
+    return data
+
+
+async def fetch_posts() -> list:
+    data = await fetch_data()
     return [p for p in data.get("posts", []) if p.get("id") and p.get("date")]
+
+
+async def fetch_exercises() -> list:
+    try:
+        ex = (await fetch_data(max_age=300)).get("exercises", [])
+        if ex:
+            return ex
+    except Exception:
+        logging.exception("data.json (mashqlar) o'qilmadi")
+    return FALLBACK_EXERCISES
+
+
+def src_of(e: dict) -> str:
+    return e.get("source") if e.get("source") in SOURCE_NAME else "gym"
 
 
 def channel_text(p: dict) -> str:
@@ -314,8 +361,40 @@ async def back(message: Message):
 
 @dp.message(F.text.in_(TRAINING.keys()))
 async def muscle(message: Message):
-    title, url = TRAINING[message.text]
-    await message.answer(f"{title}\n\n🎥 Video:\n{url}")
+    mid, title = TRAINING[message.text]
+    ex = [e for e in await fetch_exercises() if e.get("muscle") == mid]
+    rows = []
+    for key, name, _ in SOURCES:
+        n = sum(1 for e in ex if src_of(e) == key)
+        if n:
+            rows.append([InlineKeyboardButton(text=f"{name} · {n}", callback_data=f"v:{mid}:{key}")])
+    if site_base():
+        rows.append([InlineKeyboardButton(text="🌐 Saytda ko'rish", url=f"{site_base()}/#/m/{mid}")])
+    text = f"{title}\n\nQaysi videolarni ko'rasiz?" if ex else f"{title}\n\nBu guruhda hozircha video yo'q. Tez orada qo'shiladi."
+    await message.answer(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows) if rows else None)
+
+
+@dp.callback_query(F.data.startswith("v:"))
+async def videos(call: CallbackQuery):
+    try:
+        _, mid, key = call.data.split(":", 2)
+    except ValueError:
+        await call.answer()
+        return
+    ex = [e for e in await fetch_exercises() if e.get("muscle") == mid and src_of(e) == key]
+    await call.answer()
+    if not ex:
+        await call.message.answer("Bu bo'limda hozircha video yo'q.")
+        return
+    await call.message.answer(f"{SOURCE_NAME[key]} — {MUSCLE_TITLE.get(mid, mid)}\n{SOURCE_DESC[key]}")
+    for e in ex:
+        lines = [f"🎥 {e.get('name', 'Video')}"]
+        if e.get("author"):
+            lines.append(f"👤 Trener: {e['author']}")
+        if e.get("sets") or e.get("reps"):
+            lines.append(f"🔁 {e.get('sets') or '?'} × {e.get('reps') or '?'}" + (f" · dam {e['rest']}" if e.get("rest") else ""))
+        lines.append(e.get("video", ""))
+        await call.message.answer("\n".join(lines))
 
 
 @dp.message(Command("myid"))
