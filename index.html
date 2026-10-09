@@ -233,6 +233,12 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
 .quote .q{font-family:var(--display);font-weight:var(--dw);text-transform:uppercase;font-size:clamp(48px,9vw,120px);line-height:.88;position:relative;z-index:1}
 .quote .q .skew{background:var(--ink);color:#fff}
 .quote p{margin:0;font-weight:700;font-size:18px;max-width:46ch;position:relative;z-index:1}
+/* salom xabarnomasi */
+.hello{position:fixed;left:50%;bottom:24px;z-index:60;transform:translate(-50%,20px);opacity:0;display:flex;align-items:center;gap:14px;width:max-content;max-width:calc(100% - 32px);background:var(--ink);color:var(--paper);padding:14px 18px;border-left:6px solid var(--red);box-shadow:0 10px 30px rgba(0,0,0,.25);transition:opacity .4s,transform .4s;cursor:pointer}
+.hello.show{opacity:1;transform:translate(-50%,0)}
+.hello b{display:block;font-family:var(--display);font-weight:var(--dw);font-size:22px;text-transform:uppercase;letter-spacing:.02em;line-height:1.1}
+.hello span{display:block;font-weight:600;font-size:14px;color:#bdb8ae}
+.hello i{font-style:normal;font-size:28px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
@@ -243,7 +249,7 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
   // ---------- TILLAR / LANGUAGES / ЯЗЫКИ ----------
   var T = {
     uz: {
-      home:"Bosh sahifa", workouts:"Mashqlar", knowledge:"Bilim", channel:"Kanal",
+      helloSub:"Superior Grindset'ga xush kelibsiz!", home:"Bosh sahifa", workouts:"Mashqlar", knowledge:"Bilim", channel:"Kanal",
       kicker:"O'zingdan boshla", heroA:"Hozir", heroB:"boshla.",
       heroP:"Har bir mashq videosi, texnikasi, set va takrorlari. Ovqatlanish va tiklanish bo'yicha qisqa, amaliy ma'lumotlar. Bahona yo'q.",
       seeWorkouts:"Mashqlarni ko'rish", tgChannel:"Telegram kanal",
@@ -272,7 +278,7 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
       muscles:{chest:"Ko'krak", back:"Orqa", legs:"Oyoq", shoulders:"Yelka", biceps:"Bitseps", triceps:"Tritseps", abs:"Press", cardio:"Kardio"}
     },
     ru: {
-      home:"Главная", workouts:"Упражнения", knowledge:"Знания", channel:"Канал",
+      helloSub:"Добро пожаловать в Superior Grindset!", home:"Главная", workouts:"Упражнения", knowledge:"Знания", channel:"Канал",
       kicker:"Начни с себя", heroA:"Начни", heroB:"сейчас.",
       heroP:"Видео упражнений, техника, подходы и повторения. Короткие и практичные советы по питанию и восстановлению. Без оправданий.",
       seeWorkouts:"Смотреть упражнения", tgChannel:"Telegram-канал",
@@ -301,7 +307,7 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
       muscles:{chest:"Грудь", back:"Спина", legs:"Ноги", shoulders:"Плечи", biceps:"Бицепс", triceps:"Трицепс", abs:"Пресс", cardio:"Кардио"}
     },
     en: {
-      home:"Home", workouts:"Workouts", knowledge:"Knowledge", channel:"Channel",
+      helloSub:"Welcome to Superior Grindset!", home:"Home", workouts:"Workouts", knowledge:"Knowledge", channel:"Channel",
       kicker:"Start with yourself", heroA:"Start", heroB:"now.",
       heroP:"Exercise videos, technique, sets and reps. Short, practical tips on nutrition and recovery. No excuses.",
       seeWorkouts:"See workouts", tgChannel:"Telegram channel",
@@ -682,6 +688,20 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
   }
   window.addEventListener("hashchange", render);
 
+  // Kirganda "Assalomu alaykum" xabarnomasi — bir necha soniyadan keyin o'zi yo'qoladi (har tashrifda bir marta)
+  function hello(){
+    try { if (sessionStorage.getItem("sg_hello")) return; sessionStorage.setItem("sg_hello", "1"); } catch(e){}
+    var box = el("div", {class:"hello", role:"status", "aria-live":"polite"}, [
+      el("i", {text:"👋", "aria-hidden":"true"}),
+      el("div", null, [el("b", {text:"Assalomu alaykum!"}), el("span", {text:t("helloSub")})])
+    ]);
+    function close(){ box.classList.remove("show"); setTimeout(function(){ box.remove(); }, 450); }
+    box.addEventListener("click", close);
+    document.body.appendChild(box);
+    requestAnimationFrame(function(){ requestAnimationFrame(function(){ box.classList.add("show"); }); });
+    setTimeout(close, 4500);
+  }
+
   window.addEventListener("message", function(ev){
     if (ev.origin !== "https://t.me") return;
     var d; try { d = typeof ev.data === "string" ? JSON.parse(ev.data) : ev.data; } catch(e){ return; }
@@ -692,6 +712,7 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
   document.documentElement.lang = LANG;
   fetch("data.json", {cache:"no-cache"}).then(function(r){ return r.json(); }).then(function(d){
     DATA = Object.assign(DATA, d);
+    setTimeout(hello, 600);
     // Rejalashtirilgan postlar: vaqti (Toshkent) kelmaguncha saytda ko'rinmaydi — bot kanalga shu vaqtda yuboradi
     var now = Date.now();
     DATA.posts = (DATA.posts || []).filter(function(p){

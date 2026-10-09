@@ -146,7 +146,7 @@ posted = load_posted()
 # ==========================
 # BOT STATISTIKASI
 # ==========================
-# users.json: {"<id>": {"name", "username", "first": "YYYY-MM-DD", "last": "YYYY-MM-DD"}}
+# users.json: {"<id>": {"name": o'zi aytgan ism yoki "", "asked": bool, "first": "YYYY-MM-DD", "last": "YYYY-MM-DD"}}
 # stats.json: {"questions": {"YYYY-MM-DD": n}}
 # Eslatma: Railway bepulda bot qayta deploy qilinsa bu fayllar o'chishi mumkin.
 USERS_FILE = "users.json"
@@ -177,22 +177,24 @@ def today() -> str:
     return datetime.now(TZ).date().isoformat()
 
 
+def display_name(uid) -> str:
+    """Foydalanuvchi o'zi aytgan ism; aytmagan bo'lsa — 'Ismsiz'. Telegram ismi ko'rsatilmaydi."""
+    rec = users.get(str(uid)) or {}
+    return rec.get("name") or "Ismsiz foydalanuvchi"
+
+
 async def track_user(handler, event, data):
-    """Har bir shaxsiy xabarda foydalanuvchini eslab qoladi; yangi bo'lsa egaga xabar beradi."""
+    """Har bir shaxsiy xabarda foydalanuvchini eslab qoladi (faqat id va sana)."""
     u = getattr(event, "from_user", None)
     if u and not u.is_bot and event.chat.type == "private" and u.id not in OWNER_IDS:
         key = str(u.id)
         d = today()
         rec = users.get(key)
         if rec is None:
-            users[key] = {"name": u.full_name, "username": u.username or "", "first": d, "last": d}
+            users[key] = {"name": "", "asked": False, "first": d, "last": d}
             _save(USERS_FILE, users)
-            uname = f" (@{u.username})" if u.username else ""
-            await notify_owners(f"👋 Yangi foydalanuvchi: {u.full_name}{uname}\nJami: {len(users)} ta")
         elif rec.get("last") != d:
             rec["last"] = d
-            rec["name"] = u.full_name
-            rec["username"] = u.username or ""
             _save(USERS_FILE, users)
     return await handler(event, data)
 
@@ -253,11 +255,12 @@ def src_of(e: dict) -> str:
 def channel_text(p: dict) -> str:
     """Kanal uchun qisqa matn: "tg" maydoni (1-qator qalin) yoki sarlavha + matn."""
     raw = (p.get("tg") or "").strip()
+    greet = "Assalomu alaykum! 👋\n\n"
     if raw:
         first, _, rest = raw.partition("\n")
-        text = f"<b>{html.escape(first, quote=False)}</b>" + (("\n" + html.escape(rest, quote=False)) if rest else "")
+        text = greet + f"<b>{html.escape(first, quote=False)}</b>" + (("\n" + html.escape(rest, quote=False)) if rest else "")
     else:
-        text = f"<b>{html.escape(p.get('title', ''), quote=False)}</b>\n\n{html.escape(p.get('body', ''), quote=False)}"
+        text = greet + f"<b>{html.escape(p.get('title', ''), quote=False)}</b>\n\n{html.escape(p.get('body', ''), quote=False)}"
     base = site_base()
     if base:
         text += f'\n\n👉 <a href="{base}/#/post/{p["id"]}">To\'liq maqola saytda</a>'
@@ -311,14 +314,94 @@ async def scheduler() -> None:
 # HANDLERLAR
 # ==========================
 
+# ---- ISM: birinchi kirganda so'raladi — "✍️ Ismni yozish" yoki "🙈 Ismsiz kirish" ----
+
+name_kb = InlineKeyboardMarkup(inline_keyboard=[[
+    InlineKeyboardButton(text="✍️ Ismni yozish", callback_data="name:write"),
+    InlineKeyboardButton(text="🙈 Ismsiz kirish", callback_data="name:skip"),
+]])
+awaiting_name = set()
+GREET_SECONDS = 3
+_bg = set()  # fon vazifalariga havola (GC o'chirib yubormasin)
+
+
+def run_bg(coro) -> None:
+    t = asyncio.create_task(coro)
+    _bg.add(t)
+    t.add_done_callback(_bg.discard)
+
+
+async def ask_name(message: Message):
+    awaiting_name.add(message.from_user.id)  # tugmani bosmay yozib yuborsa ham qabul qilinadi
+    await message.answer("🏆 SUPERIOR GRINDSET botimizga xush kelibsiz!\n\nIsmingiz?", reply_markup=name_kb)
+
+
+async def greet(chat_id: int, name: str = "") -> None:
+    """3 soniyalik salom, keyin asosiy menyu."""
+    hi = f"Assalomu alaykum, {name}! 👋\nXush kelibsiz!" if name else "Assalomu alaykum! 👋\nXush kelibsiz!"
+    m = await bot.send_message(chat_id, hi)
+    await asyncio.sleep(GREET_SECONDS)
+    try:
+        await bot.delete_message(chat_id, m.message_id)
+    except Exception:
+        pass
+    await bot.send_message(chat_id, "🏆 SUPERIOR GRINDSET\n\nKerakli bo'limni tanlang.", reply_markup=main_menu)
+
+
+async def finish_intro(chat_id: int, uid: int, name: str) -> None:
+    awaiting_name.discard(uid)
+    rec = users.setdefault(str(uid), {"first": today(), "last": today()})
+    first_time = not rec.get("asked")
+    rec["name"] = name
+    rec["asked"] = True
+    _save(USERS_FILE, users)
+    if first_time:
+        await notify_owners(f"👋 Yangi foydalanuvchi: {name or 'Ismsiz'}\nJami: {len(users)} ta")
+    run_bg(greet(chat_id, name))
+
+
 @dp.message(CommandStart())
 async def start(message: Message):
-    await message.answer(
-        "🏆 SUPERIOR GRINDSET BOT\n\n"
-        "Xush kelibsiz!\n\n"
-        "Kerakli bo'limni tanlang.",
-        reply_markup=main_menu,
-    )
+    u = message.from_user
+    if u and u.id not in OWNER_IDS and not (users.get(str(u.id)) or {}).get("asked"):
+        await ask_name(message)
+        return
+    name = (users.get(str(u.id)) or {}).get("name", "") if u else ""
+    run_bg(greet(message.chat.id, name))
+
+
+@dp.message(Command("ism"))
+async def change_name(message: Message):
+    await ask_name(message)
+
+
+@dp.callback_query(F.data == "name:write")
+async def name_write(call: CallbackQuery):
+    awaiting_name.add(call.from_user.id)
+    await call.answer()
+    try:
+        await call.message.edit_text("✍️ Ismingizni yozing:")
+    except Exception:
+        await call.message.answer("✍️ Ismingizni yozing:")
+
+
+@dp.callback_query(F.data == "name:skip")
+async def name_skip(call: CallbackQuery):
+    await call.answer()
+    try:
+        await call.message.delete()
+    except Exception:
+        pass
+    await finish_intro(call.message.chat.id, call.from_user.id, "")
+
+
+@dp.message(F.text, F.func(lambda m: m.from_user and m.from_user.id in awaiting_name))
+async def got_name(message: Message):
+    name = " ".join(message.text.split())[:40]
+    if not name or name.startswith("/"):
+        await message.answer("Iltimos, ismingizni yozing yoki «Ismsiz kirish» tugmasini bosing.", reply_markup=name_kb)
+        return
+    await finish_intro(message.chat.id, message.from_user.id, name)
 
 
 @dp.message(F.text == "🏋️ Trening")
@@ -484,7 +567,7 @@ async def stat(message: Message):
     q_all = sum(q.values())
     last = sorted(users.values(), key=lambda r: r.get("first", ""), reverse=True)[:5]
     last_lines = "\n".join(
-        f"• {r.get('name', '?')}" + (f" (@{r['username']})" if r.get("username") else "") + f" — {r.get('first', '')}"
+        f"• {r.get('name') or 'Ismsiz'} — {r.get('first', '')}"
         for r in last
     ) or "—"
     await message.answer(
@@ -531,9 +614,7 @@ async def question(message: Message):
     if u and u.id in OWNER_IDS:
         await message.answer("ℹ️ Obunachiga javob berish uchun uning savoliga Reply qiling.")
         return
-    name = u.full_name if u else "Noma'lum"
-    uname = f" (@{u.username})" if u and u.username else ""
-    head = f"❓ Yangi savol\n👤 {name}{uname}\n{ASK_TAG}{u.id}"
+    head = f"❓ Yangi savol\n👤 {display_name(u.id)}\n{ASK_TAG}{u.id}"
     sent = 0
     for oid in OWNER_IDS:
         try:
