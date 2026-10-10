@@ -8,7 +8,15 @@ YANGI: kanalga avtomatik post.
     Bot har daqiqada saytdagi data.json ni o'qiydi. Postning "date" + "time"
     (Toshkent vaqti) kelganda uni kanalga yuboradi. Sayt ham shu vaqtgacha
     postni yashiradi — bitta data.json yuklansa, ikkalasi birga ishlaydi.
-    Har kuni 20:00 da ertangi post yo'q bo'lsa, egasiga eslatma yuboradi.
+    Har kuni 17:00 da ertangi post yo'q bo'lsa, egasiga eslatma yuboradi.
+
+TASDIQLASH (10.10.2026): bot postni o'zicha chiqarmaydi.
+    Har kuni 13:00 da bugungi postni egasiga ko'rsatadi:
+    [✅ Ha, chiqar] [❌ Yo'q]. "Ha" bo'lsa — belgilangan vaqtda (20:00)
+    chiqadi; "Yo'q" bo'lsa — chiqmaydi, post o'zgartiriladi va
+    /sora <id> bilan qayta so'raladi. Javob bo'lmasa — chiqmaydi.
+    Post rasmli bo'lishi mumkin: data.json da "img" (masalan posts/kirish.jpg)
+    va "caption" (HTML, <=1024 belgi) bo'lsa — rasm + matn + [📖 Batafsil] tugmasi.
 
 Kerakli o'zgaruvchilar (Railway → Variables):
     BOT_TOKEN  — BotFather bergan token (MAXFIY)
@@ -61,10 +69,12 @@ SITE_URL = os.getenv("SITE_URL", "").strip()
 OWNER_IDS = {1015734340}
 
 TZ = timezone(timedelta(hours=5))   # Toshkent (yozgi vaqt yo'q)
-DEFAULT_TIME = "09:00"              # post vaqti ko'rsatilmasa
+DEFAULT_TIME = "20:00"              # post vaqti ko'rsatilmasa
 WINDOW_MIN = 15                     # vaqt kelgandan keyin shu daqiqa ichida yuboradi
-REMIND_HOUR = 20                    # ertangi post yo'qligi haqida eslatma soati
+REMIND_HOUR = 17                    # ertangi post yo'qligi haqida eslatma soati
 POSTED_FILE = "posted.json"
+ASK_HOUR = 13                       # bugungi postni egasidan so'rash soati
+APPROVE_FILE = "approvals.json"     # {post_id: "asked" | "yes" | "no" | "missed"}
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -143,6 +153,25 @@ def save_posted() -> None:
 
 
 posted = load_posted()
+
+
+def load_approvals() -> dict:
+    try:
+        with open(APPROVE_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def save_approvals() -> None:
+    try:
+        with open(APPROVE_FILE, "w", encoding="utf-8") as f:
+            json.dump(approvals, f)
+    except Exception:
+        logging.exception("approvals.json yozilmadi")
+
+
+approvals = load_approvals()
 
 # ==========================
 # BOT STATISTIKASI
@@ -282,10 +311,60 @@ def channel_text(p: dict) -> str:
 
 
 async def send_post(chat_id, p: dict):
+    """Rasmli post (img + caption + Batafsil tugmasi) yoki eski matnli post."""
+    base = site_base()
+    img = (p.get("img") or "").strip()
+    if img and base:
+        photo = img if img.startswith("http") else f"{base}/{img.lstrip('/')}"
+        caption = (p.get("caption") or "").strip() or channel_text(p)
+        kb = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="📖 Batafsil", url=f"{base}/#/post/{p['id']}")
+        ]])
+        return await bot.send_photo(chat_id, photo=photo, caption=caption[:1024],
+                                    parse_mode="HTML", reply_markup=kb)
     return await bot.send_message(
         chat_id, channel_text(p), parse_mode="HTML",
         link_preview_options=LinkPreviewOptions(is_disabled=True),
     )
+
+
+def approve_kb(pid: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="✅ Ha, chiqar", callback_data=f"ap:yes:{pid}"),
+        InlineKeyboardButton(text="❌ Yo'q", callback_data=f"ap:no:{pid}"),
+    ]])
+
+
+async def ask_owner(p: dict) -> None:
+    """Egasiga postni ko'rsatadi va chiqarish-chiqarmaslikni so'raydi."""
+    w = when_of(p)
+    t = f"{w:%d.%m %H:%M}" if w else "belgilangan vaqtda"
+    for uid in OWNER_IDS:
+        try:
+            await bot.send_message(uid, f"📝 Bugungi post ({t} da kanalga chiqadi). Ko'rib chiqing:")
+            await send_post(uid, p)
+            await bot.send_message(
+                uid, f"Shu postni {t} da kanalga chiqaraymi?\n<code>{html.escape(p['id'])}</code>",
+                parse_mode="HTML", reply_markup=approve_kb(p["id"]))
+        except Exception as e:
+            logging.exception("Egaga so'rov yuborilmadi")
+            try:
+                await bot.send_message(uid, f"❗ Postni ko'rsatib bo'lmadi ({p['id']}): {e}")
+            except Exception:
+                pass
+    approvals[p["id"]] = "asked"
+    save_approvals()
+
+
+async def publish(p: dict) -> None:
+    try:
+        await send_post(CHANNEL_ID, p)
+        posted.add(p["id"])
+        save_posted()
+        await notify_owners(f"✅ Kanalga chiqdi: {p.get('title', p['id'])}")
+    except Exception as e:
+        logging.exception("Kanalga yuborilmadi")
+        await notify_owners(f"❗ Kanalga yuborilmadi: {p.get('title', p['id'])}\n{e}\n\nBot kanalda admin ekanini tekshiring.")
 
 
 async def notify_owners(text: str) -> None:
@@ -304,17 +383,23 @@ async def scheduler() -> None:
             posts = await fetch_posts()
             for p in posts:
                 w = when_of(p)
-                if p["id"] in posted or not w:
+                pid = p["id"]
+                if pid in posted or not w:
+                    continue
+                state = approvals.get(pid)
+                # 13:00 dan keyin, bugungi (hali vaqti kelmagan) post — egasidan so'raymiz
+                if w.date() == now.date() and now.hour >= ASK_HOUR and now < w and state is None:
+                    await ask_owner(p)
                     continue
                 if w <= now <= w + timedelta(minutes=WINDOW_MIN):
-                    try:
-                        await send_post(CHANNEL_ID, p)
-                        posted.add(p["id"])
-                        save_posted()
-                        await notify_owners(f"✅ Kanalga chiqdi: {p.get('title', p['id'])}")
-                    except Exception as e:
-                        logging.exception("Kanalga yuborilmadi")
-                        await notify_owners(f"❗ Kanalga yuborilmadi: {p.get('title', p['id'])}\n{e}\n\nBot kanalda admin ekanini tekshiring.")
+                    if state == "yes":
+                        await publish(p)
+                    elif state == "asked":
+                        approvals[pid] = "missed"
+                        save_approvals()
+                        await notify_owners(
+                            f"⏸ \"{p.get('title', pid)}\" chiqmadi — tasdiqlanmadi.\n"
+                            "Yuqoridagi so'rovda ✅ Ha ni bossangiz, hoziroq chiqaraman.")
             if now.hour == REMIND_HOUR and last_remind != now.date():
                 last_remind = now.date()
                 tomorrow = (now + timedelta(days=1)).date().isoformat()
@@ -327,6 +412,65 @@ async def scheduler() -> None:
 # ==========================
 # HANDLERLAR
 # ==========================
+
+# ---- TASDIQLASH: ✅ Ha / ❌ Yo'q (faqat egasi) ----
+
+@dp.callback_query(F.data.startswith("ap:"))
+async def approve_cb(call: CallbackQuery):
+    if not call.from_user or call.from_user.id not in OWNER_IDS:
+        await call.answer()
+        return
+    _, ans, pid = call.data.split(":", 2)
+    try:
+        posts = await fetch_posts()
+    except Exception:
+        posts = []
+    p = next((x for x in posts if x["id"] == pid), None)
+    if not p:
+        await call.answer("Post topilmadi (data.json da yo'q).", show_alert=True)
+        return
+    if pid in posted:
+        await call.answer("Bu post allaqachon chiqqan.", show_alert=True)
+        return
+    w = when_of(p)
+    if ans == "yes" and w and datetime.now(TZ).date() > w.date():
+        await call.message.edit_text(f"⌛ Bu postning kuni o'tgan. Kerak bo'lsa: /yubor {pid}")
+        await call.answer()
+        return
+    if ans == "yes":
+        approvals[pid] = "yes"
+        save_approvals()
+        now = datetime.now(TZ)
+        if w and now >= w:
+            await call.message.edit_text("✅ Tasdiqlandi — vaqti o'tgan, hoziroq chiqaryapman.")
+            await publish(p)
+        else:
+            t = f"{w:%H:%M}" if w else "belgilangan vaqtda"
+            await call.message.edit_text(f"✅ Tasdiqlandi. Kanalga {t} da chiqadi.")
+    else:
+        approvals[pid] = "no"
+        save_approvals()
+        await call.message.edit_text(
+            "❌ Chiqmaydi.\n\nNimani o'zgartirish kerakligini Claude'ga yozing. "
+            f"Yangilangan data.json GitHub'ga yuklangach, /sora {pid} — qayta so'rayman.")
+    await call.answer()
+
+
+@dp.message(Command("sora"))
+async def ask_again(message: Message, command: CommandObject):
+    """/sora <id> — postni qayta ko'rsatib, Ha/Yo'q so'raydi (o'zgartirilgandan keyin)."""
+    if not is_owner(message):
+        return
+    _data_cache["t"] = 0.0          # yangi data.json ni darhol o'qish uchun
+    p = await find_post(message, command)
+    if not p:
+        return
+    if p["id"] in posted:
+        await message.answer("Bu post allaqachon kanalga chiqqan.")
+        return
+    approvals.pop(p["id"], None)
+    await ask_owner(p)
+
 
 # ---- ISM: birinchi kirganda so'raladi — "✍️ Ismni yozish" yoki "🙈 Ismsiz kirish" ----
 
@@ -521,8 +665,14 @@ async def queue(message: Message):
     if not soon:
         await message.answer("📭 Navbatda post yo'q.")
         return
-    lines = [f"• {when_of(p):%d.%m %H:%M} — {p.get('title', p['id'])}  (/korish {p['id']})" for p in soon]
-    await message.answer("🗓 Navbatdagi postlar:\n\n" + "\n".join(lines))
+    mark = {"yes": "✅", "no": "❌", "asked": "❓", "missed": "⏸"}
+    lines = [f"{mark.get(approvals.get(p['id']), '•')} {when_of(p):%d.%m %H:%M} — {p.get('title', p['id'])}  (/korish {p['id']})" for p in soon if when_of(p).year < 2090]
+    if not lines:
+        await message.answer("📭 Navbatda post yo'q.")
+        return
+    await message.answer("🗓 Navbatdagi postlar:\n\n" + "\n".join(lines) +
+                         "\n\n✅ tasdiqlangan · ❌ rad etilgan · ❓ javob kutilmoqda · • hali so'ralmagan\n"
+                         "13:00 da so'rayman. Qayta so'rash: /sora <id>")
 
 
 async def find_post(message: Message, command: CommandObject):
