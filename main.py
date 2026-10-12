@@ -15,8 +15,10 @@ TASDIQLASH (10.10.2026): bot postni o'zicha chiqarmaydi.
     [✅ Ha, chiqar] [❌ Yo'q]. "Ha" bo'lsa — belgilangan vaqtda (20:00)
     chiqadi; "Yo'q" bo'lsa — chiqmaydi, post o'zgartiriladi va
     /sora <id> bilan qayta so'raladi. Javob bo'lmasa — chiqmaydi.
-    Post rasmli bo'lishi mumkin: data.json da "img" (masalan posts/kirish.jpg)
-    va "caption" (HTML, <=1024 belgi) bo'lsa — rasm + matn + [📖 Batafsil] tugmasi.
+    Post rasmli bo'lishi mumkin: data.json da "img" (masalan p_kirish.jpg)
+    va "caption" (HTML, <=1024 belgi) bo'lsa — rasm + matn + oxirida "📖 Batafsil" havolasi.
+    (Tugma ishlatilmaydi: inline tugmali postga kanalda izoh yozib bo'lmaydi.)
+    /tuzat <id> <post linki> — bot ilgari chiqargan postdagi tugmani olib, matnni yangilaydi.
 
 Kerakli o'zgaruvchilar (Railway → Variables):
     BOT_TOKEN  — BotFather bergan token (MAXFIY)
@@ -310,18 +312,26 @@ def channel_text(p: dict) -> str:
     return text
 
 
+def post_caption(p: dict) -> str:
+    """Rasmli post matni + oxirida "📖 Batafsil" HAVOLA (tugma emas — tugma izohlarni yopib qo'yadi)."""
+    base = site_base()
+    cap = (p.get("caption") or "").strip()
+    if not cap:
+        return channel_text(p)          # channel_text o'zi sayt havolasini qo'shadi
+    if base:
+        cap += f'\n\n📖 <a href="{base}/#/post/{p["id"]}">Batafsil — saytda</a>'
+    return cap
+
+
 async def send_post(chat_id, p: dict):
-    """Rasmli post (img + caption + Batafsil tugmasi) yoki eski matnli post."""
+    """Rasmli post (img + caption + Batafsil havolasi) yoki eski matnli post.
+    Inline tugma QO'YILMAYDI — aks holda kanalda izoh (comment) yozib bo'lmay qoladi."""
     base = site_base()
     img = (p.get("img") or "").strip()
     if img and base:
         photo = img if img.startswith("http") else f"{base}/{img.lstrip('/')}"
-        caption = (p.get("caption") or "").strip() or channel_text(p)
-        kb = InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(text="📖 Batafsil", url=f"{base}/#/post/{p['id']}")
-        ]])
-        return await bot.send_photo(chat_id, photo=photo, caption=caption[:1024],
-                                    parse_mode="HTML", reply_markup=kb)
+        return await bot.send_photo(chat_id, photo=photo, caption=post_caption(p)[:1024],
+                                    parse_mode="HTML")
     return await bot.send_message(
         chat_id, channel_text(p), parse_mode="HTML",
         link_preview_options=LinkPreviewOptions(is_disabled=True),
@@ -454,6 +464,47 @@ async def approve_cb(call: CallbackQuery):
             "❌ Chiqmaydi.\n\nNimani o'zgartirish kerakligini Claude'ga yozing. "
             f"Yangilangan data.json GitHub'ga yuklangach, /sora {pid} — qayta so'rayman.")
     await call.answer()
+
+
+@dp.message(Command("tuzat"))
+async def fix_post(message: Message, command: CommandObject):
+    """/tuzat <id> <https://t.me/superior_grindset/123> — kanaldagi (bot chiqargan) postni
+    yangi formatga o'tkazadi: tugmani olib tashlaydi, matnni data.json dagi bilan yangilaydi."""
+    if not is_owner(message):
+        return
+    parts = (command.args or "").split()
+    if len(parts) != 2 or not parts[1].rstrip("/").split("/")[-1].isdigit():
+        await message.answer("Masalan: /tuzat kirish https://t.me/superior_grindset/123")
+        return
+    pid, link = parts
+    mid = int(link.rstrip("/").split("/")[-1])
+    _data_cache["t"] = 0.0
+    try:
+        posts = await fetch_posts()
+    except Exception as e:
+        await message.answer(f"❗ data.json o'qilmadi: {e}")
+        return
+    p = next((x for x in posts if x["id"] == pid), None)
+    if not p:
+        await message.answer("Bunday post topilmadi.")
+        return
+    try:
+        if (p.get("img") or "").strip():
+            await bot.edit_message_caption(chat_id=CHANNEL_ID, message_id=mid,
+                                           caption=post_caption(p)[:1024], parse_mode="HTML")
+        else:
+            await bot.edit_message_text(channel_text(p), chat_id=CHANNEL_ID, message_id=mid, parse_mode="HTML",
+                                        link_preview_options=LinkPreviewOptions(is_disabled=True))
+    except Exception as e:
+        if "not modified" not in str(e):
+            await message.answer(f"❗ Tahrirlab bo'lmadi: {e}\n(Faqat bot o'zi chiqargan postni tahrirlay oladi.)")
+            return
+    try:
+        await bot.edit_message_reply_markup(chat_id=CHANNEL_ID, message_id=mid,
+                                            reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
+    except Exception:
+        pass
+    await message.answer("✅ Tayyor: tugma olib tashlandi, oxiriga \"📖 Batafsil\" havolasi qo'shildi. Endi izoh yozsa bo'ladi.")
 
 
 @dp.message(Command("sora"))
