@@ -45,6 +45,7 @@ import aiohttp
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.types import (
+    BufferedInputFile,
     CallbackQuery,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
@@ -319,6 +320,23 @@ def channel_text(p: dict) -> str:
     return text
 
 
+RAW_BASE = "https://raw.githubusercontent.com/superior-grindset/superior-grindset.github.io/main"
+
+
+async def fetch_image(img: str) -> bytes:
+    """Rasmni avval saytdan, bo'lmasa GitHub raw dan yuklab oladi."""
+    urls = [img] if img.startswith("http") else [f"{site_base()}/{img.lstrip('/')}", f"{RAW_BASE}/{img.lstrip('/')}"]
+    async with aiohttp.ClientSession() as s:
+        for u in urls:
+            try:
+                async with s.get(u, timeout=aiohttp.ClientTimeout(total=20)) as r:
+                    if r.status == 200:
+                        return await r.read()
+            except Exception:
+                continue
+    raise RuntimeError(f"Rasm topilmadi: {img} — GitHub'ga yuklanganini tekshiring.")
+
+
 def post_caption(p: dict) -> str:
     """Rasmli post matni + oxirida "📖 Batafsil" HAVOLA (tugma emas — tugma izohlarni yopib qo'yadi)."""
     base = site_base()
@@ -337,8 +355,15 @@ async def send_post(chat_id, p: dict):
     img = (p.get("img") or "").strip()
     if img and base:
         photo = img if img.startswith("http") else f"{base}/{img.lstrip('/')}"
-        return await bot.send_photo(chat_id, photo=photo, caption=post_caption(p)[:1024],
-                                    parse_mode="HTML")
+        try:
+            return await bot.send_photo(chat_id, photo=photo, caption=post_caption(p)[:1024],
+                                        parse_mode="HTML")
+        except Exception as e:
+            # Telegram rasmni URL dan ololmasa (sayt hali yangilanmagan va h.k.) — o'zimiz yuklab, fayl qilib yuboramiz
+            logging.warning("Rasm URL orqali ketmadi (%s), fayl qilib yuboraman", e)
+            data = await fetch_image(img)
+            return await bot.send_photo(chat_id, photo=BufferedInputFile(data, filename=img.split("/")[-1]),
+                                        caption=post_caption(p)[:1024], parse_mode="HTML")
     return await bot.send_message(
         chat_id, channel_text(p), parse_mode="HTML",
         link_preview_options=LinkPreviewOptions(is_disabled=True),
