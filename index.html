@@ -137,6 +137,7 @@ h2.t{font-family:var(--display);font-weight:var(--dw);text-transform:uppercase;f
 .bilim-head p{margin:14px 0 0;font-weight:600;font-size:18px;max-width:40ch}
 .bilim-head .img{aspect-ratio:4/5;max-height:340px;width:100%;background:#222 center 75%/cover no-repeat;clip-path:polygon(14% 0,100% 0,86% 100%,0 100%)}
 
+.toc{border-top:3px solid var(--ink);padding-top:6px}.toc p.lead{margin:10px 0 4px;color:var(--muted,#6b665e)}.toc h3{font-family:var(--display);font-weight:var(--dw);text-transform:uppercase;letter-spacing:.04em;font-size:22px;margin:22px 0 6px}.toc a,.toc .soon{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid rgba(0,0,0,.12);font-weight:700;color:var(--ink);text-decoration:none}.toc a:hover{color:var(--red)}.toc a b{color:var(--red)}.toc .soon{opacity:.45;font-weight:600}.toc .soon i{font-style:normal;white-space:nowrap;font-size:12px;letter-spacing:.1em;text-transform:uppercase}
 .filters{display:flex;gap:8px;flex-wrap:wrap}
 .filters button{font-weight:800;letter-spacing:.12em;text-transform:uppercase;font-size:12px;padding:9px 16px;border:2px solid var(--ink);background:transparent;color:var(--ink);cursor:pointer}
 .filters button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
@@ -271,7 +272,7 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
       openIn:"da ochish", openPre:"",
       noVideo:"Videoni ochib bo'lmadi.", sets:"Set", reps:"Takror", rest:"Dam olish", restShort:"Dam: ",
       kA:"Bilim —", kB:"kuch.", kP:"Ovqatlanish, tiklanish va mashg'ulot — qisqa va amaliy.",
-      allCat:"Hammasi", noPosts:"Bu bo'limda hozircha post yo'q.", backK:"← Bilim",
+      allCat:"Hammasi", toc:"📚 Mundarija", soon:"tez orada", tocP:"Kanaldagi barcha mavzular. Chiqqanlarini bosib o'qing.", noPosts:"Bu bo'limda hozircha post yo'q.", backK:"← Bilim",
       notFound:"Sahifa topilmadi. ", toHome:"Bosh sahifaga", loadErr:"Ma'lumotlarni yuklab bo'lmadi. Sahifani yangilang.",
       cats:{bilim:"Bilim", ovqat:"Ovqatlanish", trening:"Trening"},
       months:["yanvar","fevral","mart","aprel","may","iyun","iyul","avgust","sentabr","oktabr","noyabr","dekabr"],
@@ -300,7 +301,7 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
       openIn:"", openPre:"Открыть в ",
       noVideo:"Не удалось открыть видео.", sets:"Подходы", reps:"Повторы", rest:"Отдых", restShort:"Отдых: ",
       kA:"Знание —", kB:"сила.", kP:"Питание, восстановление и тренировки — коротко и по делу.",
-      allCat:"Все", noPosts:"В этом разделе пока нет постов.", backK:"← Знания",
+      allCat:"Все", toc:"📚 Оглавление", soon:"скоро", tocP:"Все темы канала. Нажмите на вышедшие, чтобы прочитать.", noPosts:"В этом разделе пока нет постов.", backK:"← Знания",
       notFound:"Страница не найдена. ", toHome:"На главную", loadErr:"Не удалось загрузить данные. Обнови страницу.",
       cats:{bilim:"Знания", ovqat:"Питание", trening:"Тренировки"},
       months:["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"],
@@ -329,7 +330,7 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
       openIn:"", openPre:"Open in ",
       noVideo:"Couldn't open the video.", sets:"Sets", reps:"Reps", rest:"Rest", restShort:"Rest: ",
       kA:"Knowledge", kB:"is power.", kP:"Nutrition, recovery and training — short and practical.",
-      allCat:"All", noPosts:"No posts in this section yet.", backK:"← Knowledge",
+      allCat:"All", toc:"📚 Contents", soon:"soon", tocP:"Every topic on the channel. Tap the published ones to read.", noPosts:"No posts in this section yet.", backK:"← Knowledge",
       notFound:"Page not found. ", toHome:"Go home", loadErr:"Couldn't load the data. Please refresh the page.",
       cats:{bilim:"Knowledge", ovqat:"Nutrition", trening:"Training"},
       months:["January","February","March","April","May","June","July","August","September","October","November","December"],
@@ -631,6 +632,7 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
   function pageBilim(){
     var list = sortedPosts().filter(function(p){ return st.postFilter === "all" || p.cat === st.postFilter; });
     var f = [["all", t("allCat")]].concat(Object.keys(T.uz.cats).map(function(k){ return [k, catName(k)]; }));
+    if ((DATA.toc || []).length) f.push(["toc", t("toc")]);
     return [page([
       el("div", {class:"bilim-head"}, [
         el("div", null, [el("h1", null, [t("kA"), " ", el("span", {class:"skew", text:t("kB")})]), el("p", {text:t("kP")})]),
@@ -639,8 +641,26 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
       el("div", {class:"filters"}, f.map(function(x){
         return el("button", {type:"button", "aria-pressed":String(st.postFilter === x[0]), text:x[1], onclick:function(){ st.postFilter = x[0]; render(); }});
       })),
+      st.postFilter === "toc" ? tocView() :
       list.length ? el("div", {class:"plist"}, list.map(postRow)) : el("div", {class:"empty", text:t("noPosts")})
     ], 24)];
+  }
+
+  // Mundarija — kanaldagi pin qilingan mundarija bilan bir xil (data.json "toc").
+  // Vaqti kelgan postlar — havola, qolganlari "tez orada".
+  function tocView(){
+    var byId = {};
+    DATA.posts.forEach(function(p){ byId[String(p.id)] = p; });
+    var kids = [el("p", {class:"lead", text:t("tocP")})];
+    (DATA.toc || []).forEach(function(sec){
+      kids.push(el("h3", {text:sec.s || ""}));
+      (sec.items || []).forEach(function(it){
+        var p = byId[String(it.post)];
+        kids.push(p ? el("a", {href:"#/post/" + encodeURIComponent(p.id)}, [el("span", {text:(LANG === "uz" ? it.t : tx(p, "title"))}), el("b", {text:"→"})])
+                    : el("div", {class:"soon"}, [el("span", {text:it.t}), el("i", {text:t("soon")})]));
+      });
+    });
+    return el("div", {class:"toc"}, kids);
   }
 
   function pagePost(id){
@@ -671,6 +691,7 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
     else if (r.page === "m") body = pageMuscle(r.arg);
     else if (r.page === "ex") body = pageExercise(r.arg);
     else if (r.page === "bilim") body = pageBilim();
+    else if (r.page === "mundarija"){ st.postFilter = "toc"; body = pageBilim(); }
     else if (r.page === "post") body = pagePost(r.arg);
     else body = pageHome();
     var app = document.getElementById("app");
@@ -730,7 +751,7 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
     var now = Date.now();
     DATA.posts = (DATA.posts || []).filter(function(p){
       if (!p.date) return true;
-      var w = Date.parse(p.date + "T" + (p.time || "09:00") + ":00+05:00");
+      var w = Date.parse(p.date + "T" + (p.time || "20:00") + ":00+05:00");
       return isNaN(w) || w <= now;
     });
     render();

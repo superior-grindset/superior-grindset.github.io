@@ -10,7 +10,11 @@ YANGI: kanalga avtomatik post.
     postni yashiradi — bitta data.json yuklansa, ikkalasi birga ishlaydi.
     Har kuni 17:00 da ertangi post yo'q bo'lsa, egasiga eslatma yuboradi.
 
-TASDIQLASH (10.10.2026): bot postni o'zicha chiqarmaydi.
+TARTIB (14.10.2026): 13:00 — egasidan so'raydi (✅/❌); 19:00 — tayyor postni yuborib
+    "kanalga qo'ying" deb eslatadi (egasi Forward → kanal, Hide sender name);
+    egasi qo'ysa — bot uni taniydi va mundarijaga ulaydi; 20:30 gacha qo'yilmasa — bot o'zi chiqaradi.
+    ❌ Yo'q bosilsa — hech narsa chiqmaydi.
+ESKI IZOH (10.10.2026): bot postni o'zicha chiqarmaydi.
     Har kuni 13:00 da bugungi postni egasiga ko'rsatadi:
     [✅ Ha, chiqar] [❌ Yo'q]. "Ha" bo'lsa — belgilangan vaqtda (20:00)
     chiqadi; "Yo'q" bo'lsa — chiqmaydi, post o'zgartiriladi va
@@ -32,6 +36,7 @@ import html
 import json
 import logging
 import os
+import re
 import time
 from urllib.parse import quote
 from datetime import datetime, timedelta, timezone
@@ -76,6 +81,8 @@ WINDOW_MIN = 15                     # vaqt kelgandan keyin shu daqiqa ichida yub
 REMIND_HOUR = 17                    # ertangi post yo'qligi haqida eslatma soati
 POSTED_FILE = "posted.json"
 ASK_HOUR = 13                       # bugungi postni egasidan so'rash soati
+REMIND_BEFORE_MIN = 60              # post vaqtidan 60 daqiqa oldin (19:00) "kanalga qo'ying" eslatmasi
+AUTO_AFTER_MIN = 30                 # egasi qo'ymasa, post vaqtidan 30 daqiqa keyin (20:30) bot o'zi chiqaradi
 APPROVE_FILE = "approvals.json"     # {post_id: "asked" | "yes" | "no" | "missed"}
 
 bot = Bot(token=TOKEN)
@@ -354,7 +361,7 @@ async def ask_owner(p: dict) -> None:
             await bot.send_message(uid, f"📝 Bugungi post ({t} da kanalga chiqadi). Ko'rib chiqing:")
             await send_post(uid, p)
             await bot.send_message(
-                uid, f"Shu postni {t} da kanalga chiqaraymi?\n<code>{html.escape(p['id'])}</code>",
+                uid, f"Shu post bugun ({t}) chiqsinmi?\n✅ — 19:00 da eslataman, o'zingiz qo'yasiz (20:30 gacha qo'yilmasa, o'zim chiqaraman).\n❌ — chiqmaydi.\n<code>{html.escape(p['id'])}</code>",
                 parse_mode="HTML", reply_markup=approve_kb(p["id"]))
         except Exception as e:
             logging.exception("Egaga so'rov yuborilmadi")
@@ -366,15 +373,133 @@ async def ask_owner(p: dict) -> None:
     save_approvals()
 
 
-async def publish(p: dict) -> None:
+reminded: set = set()   # bugun "kanalga qo'ying" eslatmasi yuborilgan postlar
+
+
+async def remind_owner(p: dict, auto_at) -> None:
+    """19:00 — tayyor postni egasiga yuboradi: uni Forward → kanal (Hide sender name) qilsa bo'ldi."""
+    for uid in OWNER_IDS:
+        try:
+            await bot.send_message(uid, "⏰ Vaqt bo'ldi! Bugungi postni kanalga qo'ying 👇")
+            await send_post(uid, p)
+            await bot.send_message(
+                uid,
+                "Qanday qo'yiladi: postni bosib turing → Forward → kanal → «Hide sender name» → yuboring.\n"
+                f"Mundarijaga o'zim ulayman. {auto_at:%H:%M} gacha qo'yilmasa — kanalga o'zim chiqaraman.")
+        except Exception:
+            logging.exception("Eslatma yuborilmadi")
+
+
+async def publish(p: dict) -> bool:
     try:
-        await send_post(CHANNEL_ID, p)
+        msg = await send_post(CHANNEL_ID, p)
         posted.add(p["id"])
         save_posted()
         await notify_owners(f"✅ Kanalga chiqdi: {p.get('title', p['id'])}")
     except Exception as e:
         logging.exception("Kanalga yuborilmadi")
         await notify_owners(f"❗ Kanalga yuborilmadi: {p.get('title', p['id'])}\n{e}\n\nBot kanalda admin ekanini tekshiring.")
+        return False
+    # mundarijaga shu post havolasini qo'shamiz (agar mundarijada bo'lsa)
+    try:
+        await update_toc({p["id"]: post_url(msg.message_id)}, quiet_if_absent=True)
+    except Exception:
+        logging.exception("Mundarija yangilanmadi")
+    return True
+
+
+# ==========================
+# MUNDARIJA (kanalda pin qilingan, bot o'zi yuritadi)
+# ==========================
+# data.json: "toc": [{"s": "🥗 OVQATLANISH", "items": [{"t": "Mavzu nomi", "post": "post_id"}, ...]}, ...]
+# Havolalar hech qayerda saqlanmaydi — pin qilingan mundarijaning o'zidan o'qiladi
+# (Railway qayta deploy qilsa ham yo'qolmaydi).
+
+TOC_HEAD = "📚 MUNDARIJA"
+
+
+def post_url(message_id: int) -> str:
+    return f"{CHANNEL_URL.rstrip('/')}/{message_id}"
+
+
+TOC_INTRO = (
+    "Assalomu alaykum! 👋\n\n"
+    "<b>Superior Grindset</b> — sog'lom va kuchli bo'lishni istagan har bir inson uchun kanal. "
+    "Maqsadimiz — sport va to'g'ri ovqatlanishni oddiy, tushunarli tilda yetkazish, "
+    "toki har kim uni o'z hayotida qo'llay olsin.\n\n"
+    "Kanalda doimiy ravishda foydali va kerakli ma'lumotlar qo'yib boriladi.\n\n"
+    "🤖 Savol bo'lsa: @superior_grindset_bot\n"
+    '🌐 Sayt: <a href="https://superior-grindset.github.io">superior-grindset.github.io</a>'
+)
+
+
+def render_toc(toc: list, links: dict, intro: str = "") -> str:
+    """Salomlashuv + mundarija — bitta pin qilingan xabar. intro: data.json "toc_intro" (HTML) yoki TOC_INTRO."""
+    out = [(intro or TOC_INTRO).strip() + "\n",
+           f"📚 <b>MUNDARIJA</b>",
+           "Mavzu nomini bossangiz — o'sha postga o'tasiz. ⏳ Ro'yxat har yangi post bilan to'ldirib boriladi.\n"]
+    for sec in toc:
+        out.append(f"<b>{html.escape(sec.get('s', ''), quote=False)}</b>")
+        for it in sec.get("items", []):
+            t = html.escape(it.get("t", ""), quote=False)
+            url = links.get(it.get("post", ""))
+            out.append(f'✅ <a href="{html.escape(url)}">{t}</a>' if url else f"• {t}")
+        out.append("")
+    out.append("Fikr va savollaringizni postlar ostida yozing — hammasini o'qiyman.\n")
+    out.append("Har kuni 1% yaxshiroq 💪")
+    return "\n".join(out)
+
+
+async def pinned_toc():
+    """Kanalda pin qilingan bot mundarijasi (Message) yoki None."""
+    chat = await bot.get_chat(CHANNEL_ID)
+    pm = chat.pinned_message
+    if pm and TOC_HEAD in (pm.text or ""):
+        return pm
+    return None
+
+
+def links_from(pm, toc: list) -> dict:
+    """Mavjud mundarijadagi havolalarni o'qiydi: {post_id: url}."""
+    found = {}
+    if pm is None:
+        return found
+    for url, txt in re.findall(r'<a href="([^"]+)">(.*?)</a>', pm.html_text or ""):
+        found[html.unescape(txt).strip()] = html.unescape(url)
+    links = {}
+    for sec in toc:
+        for it in sec.get("items", []):
+            if it.get("t", "").strip() in found and it.get("post"):
+                links[it["post"]] = found[it["t"].strip()]
+    return links
+
+
+async def update_toc(new_links: dict, quiet_if_absent: bool = False) -> str:
+    """Pin qilingan mundarijani yangilaydi. Natija matnini qaytaradi."""
+    toc = (await fetch_data()).get("toc") or []
+    if not toc:
+        return "data.json da \"toc\" yo'q."
+    ids = {it.get("post") for sec in toc for it in sec.get("items", [])}
+    pm = await pinned_toc()
+    if pm is None:
+        if not quiet_if_absent:
+            return "Pin qilingan mundarija topilmadi. Avval /mundarija buyrug'ini yuboring."
+        if any(k in ids for k in new_links):
+            await notify_owners("ℹ️ Pin qilingan mundarija topilmadi — /mundarija yuboring.")
+        return ""
+    if not any(k in ids for k in new_links) and new_links:
+        return "Bu post mundarijada yo'q."
+    links = links_from(pm, toc)
+    links.update({k: v for k, v in new_links.items() if k in ids})
+    text = render_toc(toc, links, (await fetch_data()).get("toc_intro", ""))
+    try:
+        await bot.edit_message_text(text, chat_id=CHANNEL_ID, message_id=pm.message_id, parse_mode="HTML",
+                                    link_preview_options=LinkPreviewOptions(is_disabled=True))
+    except Exception as e:
+        if "not modified" in str(e):
+            return "O'zgarish yo'q."
+        raise
+    return "✅ Mundarija yangilandi."
 
 
 async def notify_owners(text: str) -> None:
@@ -396,20 +521,26 @@ async def scheduler() -> None:
                 pid = p["id"]
                 if pid in posted or not w:
                     continue
+                if w.date() != now.date():
+                    continue
                 state = approvals.get(pid)
-                # 13:00 dan keyin, bugungi (hali vaqti kelmagan) post — egasidan so'raymiz
-                if w.date() == now.date() and now.hour >= ASK_HOUR and now < w and state is None:
+                remind_at = w - timedelta(minutes=REMIND_BEFORE_MIN)
+                auto_at = w + timedelta(minutes=AUTO_AFTER_MIN)
+                # 1) 13:00 dan keyin — egasidan so'raymiz (✅ Ha / ❌ Yo'q)
+                if state is None and now.hour >= ASK_HOUR and now < auto_at:
                     await ask_owner(p)
                     continue
-                if w <= now <= w + timedelta(minutes=WINDOW_MIN):
-                    if state == "yes":
-                        await publish(p)
-                    elif state == "asked":
-                        approvals[pid] = "missed"
-                        save_approvals()
-                        await notify_owners(
-                            f"⏸ \"{p.get('title', pid)}\" chiqmadi — tasdiqlanmadi.\n"
-                            "Yuqoridagi so'rovda ✅ Ha ni bossangiz, hoziroq chiqaraman.")
+                if state == "no":
+                    continue
+                # 2) 19:00 — tayyor postni yuborib "kanalga qo'ying" eslatmasi
+                if remind_at <= now < auto_at and pid not in reminded:
+                    reminded.add(pid)
+                    await remind_owner(p, auto_at)
+                    continue
+                # 3) 20:30 gacha egasi qo'ymasa — bot o'zi chiqaradi
+                if auto_at <= now <= auto_at + timedelta(minutes=WINDOW_MIN):
+                    await notify_owners(f"🤖 {auto_at:%H:%M} gacha kanalga qo'yilmadi — o'zim chiqaryapman.")
+                    await publish(p)
             if now.hour == REMIND_HOUR and last_remind != now.date():
                 last_remind = now.date()
                 tomorrow = (now + timedelta(days=1)).date().isoformat()
@@ -451,12 +582,15 @@ async def approve_cb(call: CallbackQuery):
         approvals[pid] = "yes"
         save_approvals()
         now = datetime.now(TZ)
-        if w and now >= w:
+        auto_at = w + timedelta(minutes=AUTO_AFTER_MIN) if w else None
+        if auto_at and now >= auto_at:
             await call.message.edit_text("✅ Tasdiqlandi — vaqti o'tgan, hoziroq chiqaryapman.")
             await publish(p)
         else:
-            t = f"{w:%H:%M}" if w else "belgilangan vaqtda"
-            await call.message.edit_text(f"✅ Tasdiqlandi. Kanalga {t} da chiqadi.")
+            r = f"{w - timedelta(minutes=REMIND_BEFORE_MIN):%H:%M}" if w else "kechqurun"
+            a = f"{auto_at:%H:%M}" if auto_at else "belgilangan vaqtda"
+            await call.message.edit_text(f"✅ Tasdiqlandi. {r} da postni yuborib eslataman — kanalga o'zingiz qo'yasiz.\n"
+                                         f"{a} gacha qo'yilmasa, o'zim chiqaraman.")
     else:
         approvals[pid] = "no"
         save_approvals()
@@ -758,13 +892,60 @@ async def publish_now(message: Message, command: CommandObject):
     p = await find_post(message, command)
     if not p:
         return
+    await publish(p)
+
+
+@dp.message(Command("mundarija"))
+async def toc_cmd(message: Message):
+    """Kanalga yangi mundarija yuboradi va pin qiladi (eski havolalar saqlanadi)."""
+    if not is_owner(message):
+        return
+    _data_cache["t"] = 0.0
     try:
-        await send_post(CHANNEL_ID, p)
-        posted.add(p["id"])
-        save_posted()
-        await message.answer("✅ Kanalga yuborildi.")
+        toc = (await fetch_data()).get("toc") or []
+        if not toc:
+            await message.answer("❗ data.json da \"toc\" yo'q.")
+            return
+        old = await pinned_toc()
+        links = links_from(old, toc)
+        intro = (await fetch_data()).get("toc_intro", "")
+        msg = await bot.send_message(CHANNEL_ID, render_toc(toc, links, intro), parse_mode="HTML",
+                                     link_preview_options=LinkPreviewOptions(is_disabled=True))
+        await bot.pin_chat_message(CHANNEL_ID, msg.message_id, disable_notification=True)
+        await message.answer(f"✅ Mundarija kanalga chiqdi va pin qilindi ({len(links)} ta havola bilan).\n"
+                             "Oldin chiqqan postlarni ulash: /ulash <id> <post linki>")
     except Exception as e:
-        await message.answer(f"❗ Yuborilmadi: {e}\nBot kanalda admin ekanini tekshiring.")
+        await message.answer(f"❗ Bo'lmadi: {e}\n\nBot kanalda admin bo'lib, \"Post\", \"Edit\" va \"Pin\" huquqlari yoqilganini tekshiring.")
+
+
+@dp.message(Command("ulash"))
+async def toc_link_cmd(message: Message, command: CommandObject):
+    """/ulash <post_id> <https://t.me/superior_grindset/123> — mundarijadagi mavzuni postga ulaydi."""
+    if not is_owner(message):
+        return
+    parts = (command.args or "").split()
+    if len(parts) != 2 or not parts[1].startswith("https://t.me/"):
+        await message.answer("Masalan: /ulash oqsil https://t.me/superior_grindset/123\n\nId lar: /idlar")
+        return
+    _data_cache["t"] = 0.0
+    try:
+        await message.answer(await update_toc({parts[0]: parts[1].rstrip("/")}))
+    except Exception as e:
+        await message.answer(f"❗ Bo'lmadi: {e}")
+
+
+@dp.message(Command("idlar"))
+async def toc_ids_cmd(message: Message):
+    """Mundarijadagi mavzular va ularning id lari."""
+    if not is_owner(message):
+        return
+    _data_cache["t"] = 0.0
+    toc = (await fetch_data()).get("toc") or []
+    lines = []
+    for sec in toc:
+        lines.append(sec.get("s", ""))
+        lines += [f"  {it.get('post')} — {it.get('t')}" for it in sec.get("items", [])]
+    await message.answer("\n".join(lines) or "toc yo'q")
 
 
 @dp.message(Command("stat"))
@@ -850,6 +1031,37 @@ async def question(message: Message):
         await message.answer("✅ Savolingiz qabul qilindi. Tez orada javob beramiz.", reply_markup=main_menu)
     else:
         await message.answer("❗ Hozir savolni yuborib bo'lmadi, birozdan keyin qayta urinib ko'ring.")
+
+
+# ---- Egasi postni kanalga O'ZI joylasa: bot uni taniydi va mundarijaga ulaydi ----
+
+def _norm(t: str) -> str:
+    t = re.sub(r"<[^>]+>", "", t or "")
+    t = html.unescape(t).replace("Assalomu alaykum! 👋", "")
+    return re.sub(r"[^0-9a-zA-Z\u0400-\u04FF]+", "", t).lower()
+
+
+@dp.channel_post()
+async def on_channel_post(message: Message):
+    """Kanalda qo'lda chiqqan postni data.json dagi post bilan solishtiradi:
+    topilsa — mundarijaga havola qo'shadi va bot uni qayta chiqarmaydi."""
+    try:
+        body = _norm(message.caption or message.text or "")
+        if len(body) < 40:
+            return
+        posts = await fetch_posts()
+        for p in posts:
+            key = _norm(p.get("caption") or p.get("tg") or "")[:60]
+            if len(key) >= 30 and key in body:
+                posted.add(p["id"])
+                save_posted()
+                approvals[p["id"]] = "yes"
+                save_approvals()
+                res = await update_toc({p["id"]: post_url(message.message_id)}, quiet_if_absent=True)
+                await notify_owners(f"📌 Kanalda \"{p.get('title', p['id'])}\" posti ko'rindi. {res or ''}".strip())
+                return
+    except Exception:
+        logging.exception("channel_post ishlovida xato")
 
 
 @dp.message()
