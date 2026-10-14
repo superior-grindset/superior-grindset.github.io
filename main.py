@@ -356,14 +356,14 @@ async def send_post(chat_id, p: dict):
     if img and base:
         photo = img if img.startswith("http") else f"{base}/{img.lstrip('/')}"
         try:
-            return await bot.send_photo(chat_id, photo=photo, caption=post_caption(p)[:1024],
+            return await bot.send_photo(chat_id, photo=photo, caption=post_caption(p),
                                         parse_mode="HTML")
         except Exception as e:
             # Telegram rasmni URL dan ololmasa (sayt hali yangilanmagan va h.k.) — o'zimiz yuklab, fayl qilib yuboramiz
             logging.warning("Rasm URL orqali ketmadi (%s), fayl qilib yuboraman", e)
             data = await fetch_image(img)
             return await bot.send_photo(chat_id, photo=BufferedInputFile(data, filename=img.split("/")[-1]),
-                                        caption=post_caption(p)[:1024], parse_mode="HTML")
+                                        caption=post_caption(p), parse_mode="HTML")
     return await bot.send_message(
         chat_id, channel_text(p), parse_mode="HTML",
         link_preview_options=LinkPreviewOptions(is_disabled=True),
@@ -650,7 +650,7 @@ async def fix_post(message: Message, command: CommandObject):
     try:
         if (p.get("img") or "").strip():
             await bot.edit_message_caption(chat_id=CHANNEL_ID, message_id=mid,
-                                           caption=post_caption(p)[:1024], parse_mode="HTML")
+                                           caption=post_caption(p), parse_mode="HTML")
         else:
             await bot.edit_message_text(channel_text(p), chat_id=CHANNEL_ID, message_id=mid, parse_mode="HTML",
                                         link_preview_options=LinkPreviewOptions(is_disabled=True))
