@@ -37,6 +37,7 @@ import json
 import logging
 import os
 import re
+import secrets
 import time
 from urllib.parse import quote
 from datetime import datetime, timedelta, timezone
@@ -211,6 +212,30 @@ def _save(path: str, data) -> None:
 
 users = _load(USERS_FILE, {})
 stats = _load(STATS_FILE, {"questions": {}})
+
+# ---- ANONIM XABARLAR: t.me/<bot>?start=anonim ----
+# anon.json: {"<token>": <user_id>} — egasiga faqat token ko'rinadi, ism/profil emas.
+ANON_FILE = "anon.json"
+ANON_ACTIVE_FILE = "anon_active.json"
+anon_map = _load(ANON_FILE, {})
+_anon_active: set = set(_load(ANON_ACTIVE_FILE, []))  # hozir anonim rejimdagilar
+
+
+def set_anon(uid: int, on: bool) -> None:
+    if on == (uid in _anon_active):
+        return
+    (_anon_active.add if on else _anon_active.discard)(uid)
+    _save(ANON_ACTIVE_FILE, sorted(_anon_active))
+
+
+def anon_token(uid: int) -> str:
+    for t, v in anon_map.items():
+        if int(v) == uid:
+            return t
+    t = secrets.token_hex(3)
+    anon_map[t] = uid
+    _save(ANON_FILE, anon_map)
+    return t
 
 
 def today() -> str:
@@ -728,9 +753,25 @@ async def finish_intro(chat_id: int, uid: int, name: str) -> None:
     run_bg(greet(chat_id, name))
 
 
+ANON_INTRO = (
+    "🕶 <b>ANONIM XABAR</b>\n\n"
+    "Savolingiz, fikringiz yoki taklifingizni yozing — ismingiz va profilingiz ko'rsatilmaydi.\n"
+    "Javob shu botga keladi.\n\n"
+    "Matn, rasm yoki ovozli xabar yuborishingiz mumkin.\n"
+    "Oddiy rejimga qaytish: /start"
+)
+
+
 @dp.message(CommandStart())
-async def start(message: Message):
+async def start(message: Message, command: CommandObject = None):
     u = message.from_user
+    if u and command and (command.args or "").strip().lower() == "anonim":
+        set_anon(u.id, True)
+        anon_token(u.id)
+        await message.answer(ANON_INTRO, parse_mode="HTML")
+        return
+    if u:
+        set_anon(u.id, False)
     if u and u.id not in OWNER_IDS and not (users.get(str(u.id)) or {}).get("asked"):
         await ask_name(message)
         return
@@ -1016,10 +1057,14 @@ async def owner_reply(message: Message):
     uid = None
     for line in text.splitlines():
         if line.startswith(ASK_TAG):
-            try:
-                uid = int(line[len(ASK_TAG):].strip())
-            except ValueError:
-                pass
+            tag = line[len(ASK_TAG):].strip()
+            if tag.startswith("#"):
+                uid = anon_map.get(tag[1:])
+            else:
+                try:
+                    uid = int(tag)
+                except ValueError:
+                    pass
     if not uid:
         await message.answer("Javob berish uchun savol xabariga (🆔 qatori bor xabarga) Reply qiling.")
         return
@@ -1037,7 +1082,10 @@ async def question(message: Message):
     if u and u.id in OWNER_IDS:
         await message.answer("ℹ️ Obunachiga javob berish uchun uning savoliga Reply qiling.")
         return
-    head = f"❓ Yangi savol\n👤 {display_name(u.id)}\n{ASK_TAG}{u.id}"
+    if u.id in _anon_active:
+        head = f"🕶 Anonim xabar\n{ASK_TAG}#{anon_token(u.id)}"
+    else:
+        head = f"❓ Yangi savol\n👤 {display_name(u.id)}\n{ASK_TAG}{u.id}"
     sent = 0
     for oid in OWNER_IDS:
         try:
