@@ -251,7 +251,7 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
   var T = {
     uz: {
       helloSub:"Superior Grindset'ga xush kelibsiz!", home:"Bosh sahifa", workouts:"Mashqlar", knowledge:"Bilim", channel:"Kanal",
-      kicker:"O'zingdan boshla", heroA:"Hozir", heroB:"boshla.",
+      kicker:"O'zingdan boshla", heroA:"Hozir ", heroB:"boshla.",
       heroP:"Har bir mashq videosi, texnikasi, set va takrorlari. Ovqatlanish va tiklanish bo'yicha qisqa, amaliy ma'lumotlar. Bahona yo'q.",
       seeWorkouts:"Mashqlarni ko'rish", tgChannel:"Telegram kanal",
       stMuscles:"Mushak guruhi", stVideos:"Mashq videosi", stPosts:"Foydali post",
@@ -280,7 +280,7 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
     },
     ru: {
       helloSub:"Добро пожаловать в Superior Grindset!", home:"Главная", workouts:"Упражнения", knowledge:"Знания", channel:"Канал",
-      kicker:"Начни с себя", heroA:"Начни", heroB:"сейчас.",
+      kicker:"Начни с себя", heroA:"Начни ", heroB:"сейчас.",
       heroP:"Видео упражнений, техника, подходы и повторения. Короткие и практичные советы по питанию и восстановлению. Без оправданий.",
       seeWorkouts:"Смотреть упражнения", tgChannel:"Telegram-канал",
       stMuscles:"Групп мышц", stVideos:"Видео упражнений", stPosts:"Полезных постов",
@@ -309,7 +309,7 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
     },
     en: {
       helloSub:"Welcome to Superior Grindset!", home:"Home", workouts:"Workouts", knowledge:"Knowledge", channel:"Channel",
-      kicker:"Start with yourself", heroA:"Start", heroB:"now.",
+      kicker:"Start with yourself", heroA:"Start ", heroB:"now.",
       heroP:"Exercise videos, technique, sets and reps. Short, practical tips on nutrition and recovery. No excuses.",
       seeWorkouts:"See workouts", tgChannel:"Telegram channel",
       stMuscles:"Muscle groups", stVideos:"Workout videos", stPosts:"Useful posts",
@@ -683,8 +683,27 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
   }
 
   var lastKey = null;
+  var DEFAULT_DESC = "Superior Grindset — mashqlar, ovqatlanish va foydali fitness ma'lumotlari o'zbek tilida.";
+  function setMeta(r){
+    var base = "Superior Grindset", title = base, desc = DEFAULT_DESC;
+    try {
+      if (r.page === "mashqlar") title = "Mashqlar — " + base;
+      else if (r.page === "bilim" || r.page === "mundarija") title = "Bilim — " + base;
+      else if (r.page === "m"){
+        var mu = MUSCLES.filter(function(x){ return x.id === r.arg; })[0];
+        title = (mu ? mu.name : r.arg) + " — mashqlar | " + base;
+      } else if (r.page === "post"){
+        var p = DATA.posts.filter(function(x){ return x.id === r.arg; })[0];
+        if (p){ title = p.title + " | " + base; desc = p.title + " — " + base + " kanali uchun o'zbek tilidagi fitness ma'lumoti."; }
+      }
+    } catch(e){}
+    document.title = title;
+    var md = document.querySelector('meta[name="description"]');
+    if (md) md.setAttribute("content", desc);
+  }
   function render(){
     var r = route(), key = r.page + "/" + r.arg;
+    setMeta(r);
     if (key !== lastKey){ lastKey = key; window.scrollTo(0, 0); }
     var body;
     if (r.page === "mashqlar") body = pageMashqlar();
