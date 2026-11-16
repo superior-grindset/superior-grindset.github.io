@@ -96,7 +96,7 @@ dp = Dispatcher()
 
 main_menu = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="🏋️ Trening")],
+        [KeyboardButton(text="🏋️ Mashg'ulotlar"), KeyboardButton(text="📚 Ma'lumotlar")],
         [KeyboardButton(text="🌐 Sayt"), KeyboardButton(text="ℹ️ Kanal haqida")],
         [KeyboardButton(text="✍️ Savol berish")],
     ],
@@ -105,9 +105,9 @@ main_menu = ReplyKeyboardMarkup(
 
 training_menu = ReplyKeyboardMarkup(
     keyboard=[
-        [KeyboardButton(text="💪 Chest"), KeyboardButton(text="🏋️ Back")],
-        [KeyboardButton(text="💪 Biceps"), KeyboardButton(text="💪 Triceps")],
-        [KeyboardButton(text="🏋️ Shoulders"), KeyboardButton(text="🦵 Legs")],
+        [KeyboardButton(text="💪 Ko'krak"), KeyboardButton(text="🏋️ Orqa")],
+        [KeyboardButton(text="💪 Bitseps"), KeyboardButton(text="💪 Tritseps")],
+        [KeyboardButton(text="🏋️ Yelka"), KeyboardButton(text="🦵 Oyoq")],
         [KeyboardButton(text="⬅️ Orqaga")],
     ],
     resize_keyboard=True,
@@ -116,12 +116,12 @@ training_menu = ReplyKeyboardMarkup(
 # Mushak guruhlari: tugma matni → (id, sarlavha). Videolar saytdagi data.json dan olinadi —
 # sayt va bot doim bir xil bo'ladi (3 rejim: trener / premium zal / oddiy zal).
 TRAINING = {
-    "💪 Chest": ("chest", "💪 CHEST — Ko'krak"),
-    "💪 Triceps": ("triceps", "💪 TRICEPS — Tritseps"),
-    "🏋️ Back": ("back", "🏋️ BACK — Orqa"),
-    "💪 Biceps": ("biceps", "💪 BICEPS — Bitseps"),
-    "🦵 Legs": ("legs", "🦵 LEGS — Oyoq"),
-    "🏋️ Shoulders": ("shoulders", "🏋️ SHOULDERS — Yelka"),
+    "💪 Ko'krak": ("chest", "💪 KO'KRAK"),
+    "💪 Tritseps": ("triceps", "💪 TRITSEPS"),
+    "🏋️ Orqa": ("back", "🏋️ ORQA"),
+    "💪 Bitseps": ("biceps", "💪 BITSEPS"),
+    "🦵 Oyoq": ("legs", "🦵 OYOQ"),
+    "🏋️ Yelka": ("shoulders", "🏋️ YELKA"),
 }
 MUSCLE_TITLE = {v[0]: v[1] for v in TRAINING.values()}
 
@@ -815,9 +815,85 @@ async def got_name(message: Message):
     await finish_intro(message.chat.id, message.from_user.id, name)
 
 
-@dp.message(F.text == "🏋️ Trening")
+@dp.message(F.text.in_({"🏋️ Mashg'ulotlar", "🏋️ Trening"}))
 async def training(message: Message):
-    await message.answer("💪 Qaysi mushak guruhini mashq qilmoqchisiz?", reply_markup=training_menu)
+    await message.answer("🏋️ MASHG'ULOTLAR\n\nQaysi mushak guruhini mashq qilmoqchisiz?", reply_markup=training_menu)
+
+
+_tg_links = {"t": 0.0, "d": {}}
+
+
+async def channel_links(toc: list) -> dict:
+    """Pin qilingan mundarijadagi {post_id: kanal havolasi}. 10 daqiqa keshlanadi."""
+    if time.time() - _tg_links["t"] < 600:
+        return _tg_links["d"]
+    try:
+        _tg_links["d"] = links_from(await pinned_toc(), toc)
+        _tg_links["t"] = time.time()
+    except Exception:
+        logging.exception("kanal havolalari o'qilmadi")
+    return _tg_links["d"]
+
+
+def _short(t: str, n: int = 48) -> str:
+    t = (t or "").strip()
+    return t if len(t) <= n else t[: n - 1] + "…"
+
+
+@dp.message(F.text == "📚 Ma'lumotlar")
+async def info_menu(message: Message):
+    try:
+        toc = (await fetch_data(max_age=120)).get("toc") or []
+    except Exception:
+        logging.exception("mundarija o'qilmadi")
+        toc = []
+    if not toc:
+        await message.answer("Hozir maqolalarni yuklab bo'lmadi. Birozdan keyin urinib ko'ring.")
+        return
+    rows = [[InlineKeyboardButton(text=sec.get("s", "—"), callback_data=f"i:{i}")] for i, sec in enumerate(toc)]
+    await message.answer(
+        "📚 MA'LUMOTLAR\n\nKanaldagi barcha mavzular shu yerda. Bo'limni tanlang 👇",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+    )
+
+
+@dp.callback_query(F.data == "i:soon")
+async def info_soon(call: CallbackQuery):
+    await call.answer("⏳ Bu mavzu tez orada chiqadi.", show_alert=True)
+
+
+@dp.callback_query(F.data.startswith("i:"))
+async def info_list(call: CallbackQuery):
+    await call.answer()
+    try:
+        idx = int(call.data.split(":", 1)[1])
+        data = await fetch_data(max_age=120)
+        toc = data.get("toc") or []
+        sec = toc[idx]
+    except Exception:
+        await call.message.answer("Hozir yuklab bo'lmadi. Birozdan keyin urinib ko'ring.")
+        return
+    now = datetime.now(TZ)
+    ready = {}
+    for p in data.get("posts", []):
+        w = when_of(p)
+        if p.get("id") and w and w <= now:
+            ready[p["id"]] = p
+    links = await channel_links(toc)
+    rows = []
+    for it in sec.get("items", []):
+        pid, title = it.get("post", ""), _short(it.get("t", ""))
+        if pid in ready and site_base():
+            row = [InlineKeyboardButton(text=title, url=site_link(call.from_user, f"/post/{pid}"))]
+            if links.get(pid):
+                row.append(InlineKeyboardButton(text="📢 Kanalda", url=links[pid]))
+        else:
+            row = [InlineKeyboardButton(text="⏳ " + title, callback_data="i:soon")]
+        rows.append(row)
+    await call.message.answer(
+        f"{sec.get('s', '')}\n\nO'qish uchun mavzuni tanlang. ⏳ — tez orada.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+    )
 
 
 @dp.message(F.text == "ℹ️ Kanal haqida")
