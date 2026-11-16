@@ -1,0 +1,72 @@
+name: Bot
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: bot
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 358
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Kutubxonalar
+        run: pip install -r requirements.txt
+
+      - name: Holatni tiklash
+        run: |
+          if git ls-remote --exit-code --heads origin bot-state >/dev/null 2>&1; then
+            git fetch -q origin bot-state
+            for f in posted approvals users stats anon anon_active; do
+              git show origin/bot-state:$f.json > $f.json 2>/dev/null || rm -f $f.json
+            done
+          fi
+          ls -la *.json || true
+
+      - name: Botni ishga tushirish
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          save_state() {
+            (
+              rm -rf /tmp/st && mkdir /tmp/st && cd /tmp/st
+              for f in posted approvals users stats anon anon_active; do
+                [ -f "$GITHUB_WORKSPACE/$f.json" ] && cp "$GITHUB_WORKSPACE/$f.json" .
+              done
+              h=$(cat *.json 2>/dev/null | md5sum | cut -d' ' -f1)
+              if [ "$h" = "$(cat /tmp/last_hash 2>/dev/null)" ]; then exit 0; fi
+              git init -q
+              git config user.name "bot"
+              git config user.email "bot@users.noreply.github.com"
+              git checkout -q -b bot-state
+              git add -A
+              git commit -qm "state"
+              git push -q -f "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" bot-state \
+                && echo "$h" > /tmp/last_hash
+            ) || echo "holat saqlanmadi"
+          }
+
+          timeout -s INT 345m python main.py &
+          PID=$!
+          n=0
+          while kill -0 $PID 2>/dev/null; do
+            sleep 10
+            n=$((n+1))
+            if [ $n -ge 30 ]; then n=0; save_state; fi
+          done
+          save_state
