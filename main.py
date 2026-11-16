@@ -874,25 +874,54 @@ async def info_list(call: CallbackQuery):
         await call.message.answer("Hozir yuklab bo'lmadi. Birozdan keyin urinib ko'ring.")
         return
     now = datetime.now(TZ)
+    ready = _ready_posts(data, now)
+    rows = []
+    for j, it in enumerate(sec.get("items", [])):
+        title = _short(it.get("t", ""), 52)
+        if it.get("post", "") in ready:
+            rows.append([InlineKeyboardButton(text=title, callback_data=f"j:{idx}:{j}")])
+        else:
+            rows.append([InlineKeyboardButton(text="⏳ " + title, callback_data="i:soon")])
+    await call.message.answer(
+        f"{sec.get('s', '')}\n\nMavzuni tanlang. ⏳ — tez orada chiqadi.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+    )
+
+
+def _ready_posts(data: dict, now) -> dict:
     ready = {}
     for p in data.get("posts", []):
         w = when_of(p)
         if p.get("id") and w and w <= now:
             ready[p["id"]] = p
-    links = await channel_links(toc)
-    rows = []
-    for it in sec.get("items", []):
-        pid, title = it.get("post", ""), _short(it.get("t", ""))
-        if pid in ready and site_base():
-            row = [InlineKeyboardButton(text=title, url=site_link(call.from_user, f"/post/{pid}"))]
-            if links.get(pid):
-                row.append(InlineKeyboardButton(text="📢 Kanalda", url=links[pid]))
-        else:
-            row = [InlineKeyboardButton(text="⏳ " + title, callback_data="i:soon")]
-        rows.append(row)
+    return ready
+
+
+@dp.callback_query(F.data.startswith("j:"))
+async def info_item(call: CallbackQuery):
+    await call.answer()
+    try:
+        _, si, ji = call.data.split(":")
+        data = await fetch_data(max_age=120)
+        toc = data.get("toc") or []
+        it = toc[int(si)]["items"][int(ji)]
+    except Exception:
+        await call.message.answer("Hozir yuklab bo'lmadi. Birozdan keyin urinib ko'ring.")
+        return
+    pid = it.get("post", "")
+    if pid not in _ready_posts(data, datetime.now(TZ)):
+        await call.message.answer("⏳ Bu mavzu tez orada chiqadi.")
+        return
+    buttons = []
+    if site_base():
+        buttons.append(InlineKeyboardButton(text="📖 Batafsil", url=site_link(call.from_user, f"/post/{pid}")))
+    link = (await channel_links(toc)).get(pid)
+    if link:
+        buttons.append(InlineKeyboardButton(text="📢 Kanalda", url=link))
     await call.message.answer(
-        f"{sec.get('s', '')}\n\nO'qish uchun mavzuni tanlang. ⏳ — tez orada.",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+        f"<b>{html.escape(it.get('t', ''), quote=False)}</b>\n\nQayerda o'qiysiz?",
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[buttons]) if buttons else None,
     )
 
 
