@@ -41,6 +41,7 @@ jobs:
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           GH_TOKEN: ${{ github.token }}
+          SITE_URL: https://superior-grindset.github.io
         run: |
           save_state() {
             (
