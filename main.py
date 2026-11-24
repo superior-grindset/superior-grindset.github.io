@@ -402,12 +402,19 @@ def approve_kb(pid: str) -> InlineKeyboardMarkup:
     ]])
 
 
-async def ask_owner(p: dict) -> None:
+async def ask_owner(p: dict, missed: bool = False) -> None:
     """Egasiga postni ko'rsatadi va chiqarish-chiqarmaslikni so'raydi."""
     w = when_of(p)
     t = f"{w:%d.%m %H:%M}" if w else "belgilangan vaqtda"
     for uid in OWNER_IDS:
         try:
+            if missed:
+                await bot.send_message(uid, f"⚠️ Kechagi post ({t}) kanalga chiqmay qolgan. Ko'rib chiqing:")
+                await send_post(uid, p)
+                await bot.send_message(
+                    uid, f"Shu post hozir chiqsinmi?\n✅ — darrov kanalga chiqaraman.\n❌ — chiqmaydi.\n<code>{html.escape(p['id'])}</code>",
+                    parse_mode="HTML", reply_markup=approve_kb(p["id"]))
+                continue
             await bot.send_message(uid, f"📝 Bugungi post ({t} da kanalga chiqadi). Ko'rib chiqing:")
             await send_post(uid, p)
             await bot.send_message(
@@ -571,9 +578,16 @@ async def scheduler() -> None:
                 pid = p["id"]
                 if pid in posted or not w:
                     continue
+                state = approvals.get(pid)
+                # Kecha chiqmay qolgan post (bot o'chib qolgan bo'lsa) — egasidan so'raymiz
+                if (now.date() - w.date()).days == 1:
+                    if state is None:
+                        await ask_owner(p, missed=True)
+                    elif state == "yes":
+                        await publish(p)
+                    continue
                 if w.date() != now.date():
                     continue
-                state = approvals.get(pid)
                 remind_at = w - timedelta(minutes=REMIND_BEFORE_MIN)
                 auto_at = w + timedelta(minutes=AUTO_AFTER_MIN)
                 # 1) 13:00 dan keyin — egasidan so'raymiz (✅ Ha / ❌ Yo'q)
@@ -624,6 +638,13 @@ async def approve_cb(call: CallbackQuery):
         await call.answer("Bu post allaqachon chiqqan.", show_alert=True)
         return
     w = when_of(p)
+    if ans == "yes" and w and (datetime.now(TZ).date() - w.date()).days == 1:
+        approvals[pid] = "yes"
+        save_approvals()
+        await call.message.edit_text("✅ Tasdiqlandi — hoziroq chiqaryapman.")
+        await publish(p)
+        await call.answer()
+        return
     if ans == "yes" and w and datetime.now(TZ).date() > w.date():
         await call.message.edit_text(f"⌛ Bu postning kuni o'tgan. Kerak bo'lsa: /yubor {pid}")
         await call.answer()
