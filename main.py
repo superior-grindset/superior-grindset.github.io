@@ -463,7 +463,26 @@ async def publish(p: dict) -> bool:
         await update_toc({p["id"]: post_url(msg.message_id)}, quiet_if_absent=True)
     except Exception:
         logging.exception("Mundarija yangilanmadi")
+    # postga biriktirilgan mashq videolari ("videos": [mashq id lari]) — matndan keyin alohida-alohida
+    if p.get("videos"):
+        await send_post_videos(CHANNEL_ID, p)
     return True
+
+
+async def send_post_videos(chat_id, p: dict) -> int:
+    """Postdagi "videos" ro'yxati bo'yicha mashq videolarini ketma-ket yuboradi."""
+    ex = {e.get("id"): e for e in await fetch_exercises()}
+    sent = 0
+    for vid in p.get("videos") or []:
+        e = ex.get(vid)
+        if not e:
+            await notify_owners(f"❗ Mashq topilmadi: {vid}")
+            continue
+        if await send_local_video(chat_id, e):
+            sent += 1
+        else:
+            await notify_owners(f"❗ Video yuborilmadi: {e.get('name', vid)}")
+    return sent
 
 
 # ==========================
@@ -1107,6 +1126,22 @@ async def preview(message: Message, command: CommandObject):
     p = await find_post(message, command)
     if p:
         await send_post(message.chat.id, p)
+
+
+@dp.message(Command("videolar"))
+async def videos_now(message: Message, command: CommandObject):
+    """/videolar <post_id> — postga biriktirilgan videolarni kanalga yuboradi (matn allaqachon chiqqan bo'lsa)."""
+    if not is_owner(message):
+        return
+    p = await find_post(message, command)
+    if not p:
+        return
+    if not p.get("videos"):
+        await message.answer("Bu postda videolar ro'yxati yo'q.")
+        return
+    await message.answer(f"⏳ {len(p['videos'])} ta video kanalga yuborilmoqda...")
+    n = await send_post_videos(CHANNEL_ID, p)
+    await message.answer(f"✅ {n} ta video kanalga chiqdi.")
 
 
 @dp.message(Command("yubor"))
