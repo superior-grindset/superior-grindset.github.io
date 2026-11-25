@@ -1008,6 +1008,8 @@ async def send_local_video(chat_id, e: dict) -> bool:
     rel = m.group(1)
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), rel)
     cap = f"🎥 {e.get('name', 'Video')}"
+    if e.get("sets") or e.get("reps"):
+        cap += f"\n🔁 {e.get('sets') or '?'} yondashuv × {e.get('reps') or '?'} takror"
     if e.get("body"):
         cap += "\n\n" + e["body"]
     if len(cap) > 1020:

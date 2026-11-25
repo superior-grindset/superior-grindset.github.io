@@ -3,17 +3,81 @@
   "bot": "superior_grindset_bot",
   "exercises": [
     {
-      "id": "chest",
+      "id": "p-chest-1",
       "muscle": "chest",
-      "name": "Ko'krak kuni (hafta 1-kun)",
-      "video": "https://superior-grindset.github.io/videos/kokrak.mp4",
-      "sets": "",
-      "reps": "",
+      "source": "premium",
+      "name": "Qiya skameykada shtanga",
+      "video": "https://superior-grindset.github.io/videos/qiya-shtanga.mp4",
+      "sets": "5",
+      "reps": "12-15 · 9-11 · 6-9",
       "rest": "",
-      "body": "1. Qiya skameykada shtanga — 5 yondashuv: 2 razminka (12-15) + 3 ish (12-15 · 9-11 · 6-9 takror)\n2. Tekis skameykada shtanga — 2-3 yondashuv (12-15 · 9-11 · 6-9 takror)\n3. Qiya skameykada gantel — 3 yondashuv (12-15 · 9-11 · 6-9 takror)\n4. Trenajerda ko'krak — 3 yondashuv (12-15 · 9-11 · 6-9 takror)\n5. Babochka — 3 yondashuv (12-15 · 9-11 · 6-9 takror)\n\nHar yondashuvda vazn oshadi, takror kamayadi. Birinchisi 12-15 marta qila oladigan vaznda, keyingisi 9-11, oxirgisi 6-9.",
-      "name_ru": "Тренировка груди",
-      "name_en": "Chest workout",
-      "source": "premium"
+      "body": "2 ta razminka + 3 ta ish yondashuvi. Shtanga ko'krakning yuqori qismiga tushsin. Kurakni yig'ib, skameykaga bosing, tirsak gavdadan taxminan 45° ochiq tursin."
+    },
+    {
+      "id": "p-chest-2",
+      "muscle": "chest",
+      "source": "premium",
+      "name": "Tekis skameykada shtanga",
+      "video": "https://superior-grindset.github.io/videos/tekis-shtanga.mp4",
+      "sets": "2-3",
+      "reps": "12-15 · 9-11 · 6-9",
+      "rest": "",
+      "body": "Oyoqlar polga tiralgan, kuraklar yig'ilgan. Shtangani ko'krakka yengil tekkizing, sakratmang. Tepada qo'lni to'liq yozing."
+    },
+    {
+      "id": "p-chest-3",
+      "muscle": "chest",
+      "source": "premium",
+      "name": "Qiya skameykada gantel",
+      "video": "https://superior-grindset.github.io/videos/qiya-gantel.mp4",
+      "sets": "3",
+      "reps": "12-15 · 9-11 · 6-9",
+      "rest": "",
+      "body": "Pastda ko'krak yaxshi cho'zilsin. Gantellarni sekin tushiring va tepada yelka ustiga to'g'ri chiqaring."
+    },
+    {
+      "id": "p-chest-4",
+      "muscle": "chest",
+      "source": "premium",
+      "name": "Trenajerda ko'krak",
+      "video": "https://superior-grindset.github.io/videos/trenajer-kokrak.mp4",
+      "sets": "3",
+      "reps": "12-15 · 9-11 · 6-9",
+      "rest": "",
+      "body": "Yelkani oldinga cho'zmang, ko'krakni ochiq tuting. Harakat to'liq va boshqarilgan bo'lsin."
+    },
+    {
+      "id": "p-chest-5",
+      "muscle": "chest",
+      "source": "premium",
+      "name": "Babochka",
+      "video": "https://superior-grindset.github.io/videos/babochka.mp4",
+      "sets": "3",
+      "reps": "12-15 · 9-11 · 6-9",
+      "rest": "",
+      "body": "Orqani o'rindiqqa yopishtiring, ko'krakni oldinga chiqaring, kuraklarni yig'ing. Oxirida 1 soniya siqib turing."
+    },
+    {
+      "id": "p-triceps-1",
+      "muscle": "triceps",
+      "source": "premium",
+      "name": "Yotib tritseps (shtanga)",
+      "video": "https://superior-grindset.github.io/videos/yotib-tritseps.mp4",
+      "sets": "3",
+      "reps": "12-15 · 9-11 · 6-9",
+      "rest": "",
+      "body": "Tirsaklar yelka kengligida, yelka qimirlamasin: faqat tirsak bukiladi. Og'irlik og'ir kelsa, vaznni kamaytiring."
+    },
+    {
+      "id": "p-triceps-2",
+      "muscle": "triceps",
+      "source": "premium",
+      "name": "Trosda tritseps",
+      "video": "https://superior-grindset.github.io/videos/tros-tritseps.mp4",
+      "sets": "3",
+      "reps": "12-15 · 9-11 · 6-9",
+      "rest": "",
+      "body": "Tirsaklar yonda qotib tursin, gavdani ko'p egmang. Pastda qo'lni to'liq yozing."
     },
     {
       "id": "back",
@@ -65,19 +129,6 @@
       "body": "",
       "name_ru": "Тренировка бицепса",
       "name_en": "Biceps workout",
-      "source": "premium"
-    },
-    {
-      "id": "triceps",
-      "muscle": "triceps",
-      "name": "Tritseps (ko'krak kuni davomi)",
-      "video": "https://superior-grindset.github.io/videos/tritseps.mp4",
-      "sets": "",
-      "reps": "",
-      "rest": "",
-      "body": "1. Yotib tritseps (shtanga) — 3 yondashuv (12-15 · 9-11 · 6-9 takror)\n2. Trosda tritseps — 3 yondashuv (12-15 · 9-11 · 6-9 takror)\n\nHar yondashuvda vazn oshadi, takror kamayadi. Birinchisi 12-15 marta qila oladigan vaznda, keyingisi 9-11, oxirgisi 6-9.",
-      "name_ru": "Тренировка трицепса",
-      "name_en": "Triceps workout",
       "source": "premium"
     },
     {
