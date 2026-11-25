@@ -47,6 +47,7 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.types import (
     FSInputFile,
+    InputMediaVideo,
     BufferedInputFile,
     CallbackQuery,
     InlineKeyboardButton,
@@ -463,26 +464,53 @@ async def publish(p: dict) -> bool:
         await update_toc({p["id"]: post_url(msg.message_id)}, quiet_if_absent=True)
     except Exception:
         logging.exception("Mundarija yangilanmadi")
-    # postga biriktirilgan mashq videolari ("videos": [mashq id lari]) — matndan keyin alohida-alohida
-    if p.get("videos"):
+    # postga biriktirilgan mashq videolari ("albums") — matndan keyin albom qilib
+    if p.get("albums"):
         await send_post_videos(CHANNEL_ID, p)
     return True
 
 
 async def send_post_videos(chat_id, p: dict) -> int:
-    """Postdagi "videos" ro'yxati bo'yicha mashq videolarini ketma-ket yuboradi."""
+    """Postdagi "albums" bo'yicha mashq videolarini ALBOM qilib yuboradi (bitta albom = bitta xabar, izoh pastida).
+    albums: [{"title": "...", "ids": [mashq id lari], "lines": ["1. ...", ...], "note": "..."}]"""
     ex = {e.get("id"): e for e in await fetch_exercises()}
-    sent = 0
-    for vid in p.get("videos") or []:
-        e = ex.get(vid)
-        if not e:
-            await notify_owners(f"❗ Mashq topilmadi: {vid}")
+    root = os.path.dirname(os.path.abspath(__file__))
+    total = 0
+    for a in p.get("albums") or []:
+        media, rels = [], []
+        for i, vid in enumerate(a.get("ids") or []):
+            e = ex.get(vid)
+            mm = re.match(r"https?://[^/]+/((?:videos/)?[\w.\-]+\.mp4)$", (e or {}).get("video", ""))
+            if not mm:
+                await notify_owners(f"❗ Video topilmadi: {vid}")
+                continue
+            rel = mm.group(1)
+            rels.append(rel)
+            media.append(VIDEO_IDS.get(rel) or FSInputFile(os.path.join(root, rel)))
+        if not media:
             continue
-        if await send_local_video(chat_id, e):
-            sent += 1
-        else:
-            await notify_owners(f"❗ Video yuborilmadi: {e.get('name', vid)}")
-    return sent
+        cap = f"<b>{html.escape(a.get('title', ''), quote=False)}</b>"
+        if a.get("lines"):
+            cap += "\n\n" + "\n".join(html.escape(x, quote=False) for x in a["lines"])
+        if a.get("note"):
+            cap += "\n\n" + html.escape(a["note"], quote=False)
+        cap = cap[:1020]
+        items = [InputMediaVideo(media=mv, caption=cap if k == 0 else None, parse_mode="HTML" if k == 0 else None,
+                                 supports_streaming=True, width=720, height=1280) for k, mv in enumerate(media)]
+        try:
+            if len(items) == 1:
+                msg = await bot.send_video(chat_id, video=media[0], caption=cap, parse_mode="HTML", supports_streaming=True, width=720, height=1280)
+                msgs = [msg]
+            else:
+                msgs = await bot.send_media_group(chat_id, items)
+            for rel, mg in zip(rels, msgs):
+                if mg.video:
+                    VIDEO_IDS[rel] = mg.video.file_id
+            total += len(msgs)
+        except Exception as e:
+            logging.exception("Albom yuborilmadi")
+            await notify_owners(f"❗ Albom yuborilmadi ({a.get('title', '')}): {e}")
+    return total
 
 
 # ==========================
@@ -1136,10 +1164,10 @@ async def videos_now(message: Message, command: CommandObject):
     p = await find_post(message, command)
     if not p:
         return
-    if not p.get("videos"):
-        await message.answer("Bu postda videolar ro'yxati yo'q.")
+    if not p.get("albums"):
+        await message.answer("Bu postda albomlar ro'yxati yo'q.")
         return
-    await message.answer(f"⏳ {len(p['videos'])} ta video kanalga yuborilmoqda...")
+    await message.answer("⏳ Albomlar kanalga yuborilmoqda...")
     n = await send_post_videos(CHANNEL_ID, p)
     await message.answer(f"✅ {n} ta video kanalga chiqdi.")
 

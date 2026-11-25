@@ -1154,14 +1154,37 @@
       "stat_note": "har kuni yaxshilanamiz",
       "tg": "🎥 ZALDAN TO'G'RI TEXNIKA BILAN MASHQLAR\n\nKechadan boshlab zaldagi mashqlarni to'g'ri texnika bilan videoga olyapmiz: zalga chiqqanda bir kunda bajariladigan mashqlar to'plami, hammasi tartib bilan.\n\nYangi boshlovchilar, ba'zan esa anchadan beri shug'ullanayotganlar ham mashq paytida ishlayotgan mushakni to'g'ri sezolmaydi. O'zim ham shunday edim, hozir to'g'irlab boryapman. Natijada tana noto'g'ri shakllanishi, simmetriya yo'qolib, ikki tomon turlicha rivojlanishi mumkin.\n\nTexnikada ozgina xato bo'lishi mumkin, lekin imkon qadar to'g'ri bajarishga harakat qildim. Hammaga foydali bo'ladi degan umiddaman.\n\nAnchadan beri shug'ullanayotganlar ham bir sinab ko'ring. Foydasini sezsangiz yoki o'z fikringizni bildirsangiz, juda xursand bo'laman.\n\nHar kuni 1% yaxshilanamiz 🦾",
       "body": "Kechadan boshlab zaldagi mashqlarni to'g'ri texnika bilan videoga olyapmiz: zalga chiqqanda bir kunda bajariladigan mashqlar to'plami, hammasi tartib bilan.\n\nYangi boshlovchilar, ba'zan esa anchadan beri shug'ullanayotganlar ham mashq paytida ishlayotgan mushakni to'g'ri sezolmaydi. O'zim ham shunday edim, hozir to'g'irlab boryapman. Natijada tana noto'g'ri shakllanishi, simmetriya yo'qolib, ikki tomon turlicha rivojlanishi mumkin.\n\nTexnikada ozgina xato bo'lishi mumkin, lekin imkon qadar to'g'ri bajarishga harakat qildim. Hammaga foydali bo'ladi degan umiddaman.\n\nAnchadan beri shug'ullanayotganlar ham bir sinab ko'ring. Foydasini sezsangiz yoki o'z fikringizni bildirsangiz, juda xursand bo'laman.\n\nHar kuni 1% yaxshilanamiz",
-      "videos": [
-        "p-chest-1",
-        "p-chest-2",
-        "p-chest-3",
-        "p-chest-4",
-        "p-chest-5",
-        "p-triceps-1",
-        "p-triceps-2"
+      "albums": [
+        {
+          "title": "Chest day (ko'krak)",
+          "ids": [
+            "p-chest-1",
+            "p-chest-2",
+            "p-chest-3",
+            "p-chest-4",
+            "p-chest-5"
+          ],
+          "lines": [
+            "1. Qiya skameykada shtanga: 5 yondashuv (2 razminka + 3 ish)",
+            "2. Tekis skameykada shtanga: 2-3 yondashuv",
+            "3. Qiya skameykada gantel: 3 yondashuv",
+            "4. Trenajerda ko'krak: 3 yondashuv",
+            "5. Babochka: 3 yondashuv"
+          ],
+          "note": "Har mashqda: 12-15 → 9-11 → 6-9 takror. Vazn har yondashuvda oshadi, takror kamayadi."
+        },
+        {
+          "title": "Tritseps (qo'l orqasi)",
+          "ids": [
+            "p-triceps-1",
+            "p-triceps-2"
+          ],
+          "lines": [
+            "1. Yotib tritseps (shtanga): 3 yondashuv",
+            "2. Trosda tritseps: 3 yondashuv"
+          ],
+          "note": "Har mashqda: 12-15 → 9-11 → 6-9 takror. Vazn har yondashuvda oshadi, takror kamayadi. Tirsakdan tepasini qimirlatmang."
+        }
       ]
     }
   ],
