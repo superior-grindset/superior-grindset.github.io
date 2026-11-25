@@ -1002,7 +1002,7 @@ VIDEO_IDS: dict = {}   # yuklangan videoning Telegram file_id si (qayta yuklamas
 async def send_local_video(chat_id, e: dict) -> bool:
     """data.json dagi video saytdagi /videos/*.mp4 bo'lsa — havola emas, videoning o'zini yuboradi."""
     url = (e.get("video") or "").strip()
-    m = re.match(r"https?://[^/]+/(videos/[\w.\-]+\.mp4)$", url)
+    m = re.match(r"https?://[^/]+/((?:videos/)?[\w.\-]+\.mp4)$", url)
     if not m:
         return False
     rel = m.group(1)
