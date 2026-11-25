@@ -5,12 +5,12 @@
     {
       "id": "chest",
       "muscle": "chest",
-      "name": "Ko'krak mashqlari",
-      "video": "https://t.me/superior_grindset/261",
+      "name": "Ko'krak kuni (hafta 1-kun)",
+      "video": "https://superior-grindset.github.io/videos/kokrak.mp4",
       "sets": "",
       "reps": "",
       "rest": "",
-      "body": "",
+      "body": "1. Qiya skameykada shtanga — 5 yondashuv: 2 razminka (12-15) + 3 ish (12-15 · 9-11 · 6-9 takror)\n2. Tekis skameykada shtanga — 2-3 yondashuv (12-15 · 9-11 · 6-9 takror)\n3. Qiya skameykada gantel — 3 yondashuv (12-15 · 9-11 · 6-9 takror)\n4. Trenajerda ko'krak — 3 yondashuv (12-15 · 9-11 · 6-9 takror)\n5. Babochka — 3 yondashuv (12-15 · 9-11 · 6-9 takror)\n\nHar yondashuvda vazn oshadi, takror kamayadi. Birinchisi 12-15 marta qila oladigan vaznda, keyingisi 9-11, oxirgisi 6-9.",
       "name_ru": "Тренировка груди",
       "name_en": "Chest workout",
       "source": "premium"
@@ -70,12 +70,12 @@
     {
       "id": "triceps",
       "muscle": "triceps",
-      "name": "Tritseps mashqlari",
-      "video": "https://t.me/superior_grindset/265",
+      "name": "Tritseps (ko'krak kuni davomi)",
+      "video": "https://superior-grindset.github.io/videos/tritseps.mp4",
       "sets": "",
       "reps": "",
       "rest": "",
-      "body": "",
+      "body": "1. Yotib tritseps (shtanga) — 3 yondashuv (12-15 · 9-11 · 6-9 takror)\n2. Trosda tritseps — 3 yondashuv (12-15 · 9-11 · 6-9 takror)\n\nHar yondashuvda vazn oshadi, takror kamayadi. Birinchisi 12-15 marta qila oladigan vaznda, keyingisi 9-11, oxirgisi 6-9.",
       "name_ru": "Тренировка трицепса",
       "name_en": "Triceps workout",
       "source": "premium"

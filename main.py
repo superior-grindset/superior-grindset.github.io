@@ -46,6 +46,7 @@ import aiohttp
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command, CommandObject, CommandStart
 from aiogram.types import (
+    FSInputFile,
     BufferedInputFile,
     CallbackQuery,
     InlineKeyboardButton,
@@ -994,6 +995,33 @@ async def muscle(message: Message):
     await message.answer(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows) if rows else None)
 
 
+
+VIDEO_IDS: dict = {}   # yuklangan videoning Telegram file_id si (qayta yuklamaslik uchun)
+
+
+async def send_local_video(chat_id, e: dict) -> bool:
+    """data.json dagi video saytdagi /videos/*.mp4 bo'lsa — havola emas, videoning o'zini yuboradi."""
+    url = (e.get("video") or "").strip()
+    m = re.match(r"https?://[^/]+/(videos/[\w.\-]+\.mp4)$", url)
+    if not m:
+        return False
+    rel = m.group(1)
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), rel)
+    cap = f"🎥 {e.get('name', 'Video')}"
+    if e.get("body"):
+        cap += "\n\n" + e["body"]
+    if len(cap) > 1020:
+        cap = cap[:1017] + "..."
+    try:
+        src = VIDEO_IDS.get(rel) or FSInputFile(path)
+        msg = await bot.send_video(chat_id, video=src, caption=cap, supports_streaming=True, width=720, height=1280)
+        if msg.video:
+            VIDEO_IDS[rel] = msg.video.file_id
+        return True
+    except Exception:
+        logging.exception("Video yuborilmadi: %s", rel)
+        return False
+
 @dp.callback_query(F.data.startswith("v:"))
 async def videos(call: CallbackQuery):
     try:
@@ -1008,6 +1036,8 @@ async def videos(call: CallbackQuery):
         return
     await call.message.answer(f"{SOURCE_NAME[key]} — {MUSCLE_TITLE.get(mid, mid)}\n{SOURCE_DESC[key]}")
     for e in ex:
+        if await send_local_video(call.message.chat.id, e):
+            continue
         lines = [f"🎥 {e.get('name', 'Video')}"]
         if e.get("author"):
             lines.append(f"👤 Trener: {e['author']}")
