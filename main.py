@@ -452,6 +452,8 @@ async def remind_owner(p: dict, auto_at) -> None:
 async def publish(p: dict) -> bool:
     try:
         msg = await send_post(CHANNEL_ID, p)
+        msgs_log[p["id"]] = {"text": msg.message_id, "albums": []}
+        save_msgs()
         posted.add(p["id"])
         save_posted()
         await notify_owners(f"✅ Kanalga chiqdi: {p.get('title', p['id'])}")
@@ -470,12 +472,56 @@ async def publish(p: dict) -> bool:
     return True
 
 
+MSGS_FILE = "msgs.json"      # {post_id: {"text": message_id, "albums": [birinchi xabar id, ...]}}
+msgs_log = {}
+try:
+    with open(MSGS_FILE, encoding="utf-8") as _f:
+        msgs_log = json.load(_f)
+except Exception:
+    msgs_log = {}
+
+
+def save_msgs() -> None:
+    try:
+        with open(MSGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(msgs_log, f)
+    except Exception:
+        logging.exception("msgs.json yozilmadi")
+
+
+def album_caption(p: dict, a: dict) -> str:
+    base = site_base()
+    ids = a.get("ids") or []
+    lines = a.get("lines") or []
+    note = a.get("note") or ""
+    link = f"\n\n📖 Texnika va batafsil saytda: {base}/p/{p['id']}/" if base else ""
+    plain_len = len(a.get("title", "")) + 2 + sum(len(x) + 1 for x in lines) + (len(note) + 2 if note else 0) + len(link)
+    if plain_len > 1000 and note:
+        note = ""
+    cap = f"<b>{html.escape(a.get('title', ''), quote=False)}</b>"
+    if lines:
+        rows = []
+        for k, x in enumerate(lines):
+            t = html.escape(x, quote=False)
+            if base and k < len(ids):
+                t = f'<a href="{base}/e/{ids[k]}/">{t}</a>'
+            rows.append(t)
+        cap += "\n\n" + "\n".join(rows)
+    if note:
+        cap += "\n\n" + html.escape(note, quote=False)
+    if base:
+        cap += f'\n\n📖 <a href="{base}/p/{p["id"]}/">Texnika va batafsil saytda</a>'
+    return cap
+
+
 async def send_post_videos(chat_id, p: dict) -> int:
     """Postdagi "albums" bo'yicha mashq videolarini ALBOM qilib yuboradi (bitta albom = bitta xabar, izoh pastida).
     albums: [{"title": "...", "ids": [mashq id lari], "lines": ["1. ...", ...], "note": "..."}]"""
     ex = {e.get("id"): e for e in await fetch_exercises()}
     root = os.path.dirname(os.path.abspath(__file__))
     total = 0
+    if chat_id == CHANNEL_ID:
+        msgs_log.setdefault(p["id"], {"text": None, "albums": []})["albums"] = []
     for a in p.get("albums") or []:
         media, rels = [], []
         for i, vid in enumerate(a.get("ids") or []):
@@ -489,27 +535,7 @@ async def send_post_videos(chat_id, p: dict) -> int:
             media.append(VIDEO_IDS.get(rel) or FSInputFile(os.path.join(root, rel)))
         if not media:
             continue
-        base = site_base()
-        ids = a.get("ids") or []
-        lines = a.get("lines") or []
-        note = a.get("note") or ""
-        link = f"\n\n📖 Texnika va batafsil saytda: {base}/p/{p['id']}/" if base else ""
-        plain_len = len(a.get("title", "")) + 2 + sum(len(x) + 1 for x in lines) + (len(note) + 2 if note else 0) + len(link)
-        if plain_len > 1000 and note:
-            note = ""
-        cap = f"<b>{html.escape(a.get('title', ''), quote=False)}</b>"
-        if lines:
-            rows = []
-            for k, x in enumerate(lines):
-                t = html.escape(x, quote=False)
-                if base and k < len(ids):
-                    t = f'<a href="{base}/e/{ids[k]}/">{t}</a>'
-                rows.append(t)
-            cap += "\n\n" + "\n".join(rows)
-        if note:
-            cap += "\n\n" + html.escape(note, quote=False)
-        if base:
-            cap += f'\n\n📖 <a href="{base}/p/{p["id"]}/">Texnika va batafsil saytda</a>'
+        cap = album_caption(p, a)
         items = [InputMediaVideo(media=mv, caption=cap if k == 0 else None, parse_mode="HTML" if k == 0 else None,
                                  supports_streaming=True, width=720, height=1280) for k, mv in enumerate(media)]
         try:
@@ -521,6 +547,10 @@ async def send_post_videos(chat_id, p: dict) -> int:
             for rel, mg in zip(rels, msgs):
                 if mg.video:
                     VIDEO_IDS[rel] = mg.video.file_id
+            if chat_id == CHANNEL_ID and msgs:
+                rec = msgs_log.setdefault(p["id"], {"text": None, "albums": []})
+                rec.setdefault("albums", []).append(msgs[0].message_id)
+                save_msgs()
             total += len(msgs)
         except Exception as e:
             logging.exception("Albom yuborilmadi")
@@ -651,6 +681,11 @@ async def scheduler() -> None:
                     continue
                 if w.date() != now.date():
                     continue
+                # "auto": true — egasidan so'ramasdan, aynan shu vaqtda (1 soat ichida) chiqariladi
+                if p.get("auto"):
+                    if state != "no" and w <= now <= w + timedelta(minutes=60):
+                        await publish(p)
+                    continue
                 remind_at = w - timedelta(minutes=REMIND_BEFORE_MIN)
                 auto_at = w + timedelta(minutes=AUTO_AFTER_MIN)
                 # 1) 13:00 dan keyin — egasidan so'raymiz (✅ Ha / ❌ Yo'q)
@@ -773,6 +808,58 @@ async def fix_post(message: Message, command: CommandObject):
     except Exception:
         pass
     await message.answer("✅ Tayyor: tugma olib tashlandi, oxiriga \"📖 Batafsil\" havolasi qo'shildi. Endi izoh yozsa bo'ladi.")
+
+
+@dp.message(Command("tahrir"))
+async def edit_all(message: Message, command: CommandObject):
+    """/tahrir <post_id> — bot kanalga chiqargan post matnini va albom izohlarini data.json dagi bilan yangilaydi.
+    Eski (xabar raqami saqlanmagan) postlar uchun: /tahrir <post_id> <matn_id> <albom1_id> <albom2_id> ... (t.me/.../123 dagi 123)"""
+    if not is_owner(message):
+        return
+    parts = (command.args or "").split()
+    if not parts:
+        await message.answer("Masalan: /tahrir zal2\nEski post uchun: /tahrir zal1 301 302 303 (xabar raqamlari)")
+        return
+    pid = parts[0]
+    _data_cache["t"] = 0.0
+    try:
+        posts = await fetch_posts()
+    except Exception as e:
+        await message.answer(f"❗ data.json o'qilmadi: {e}")
+        return
+    p = next((x for x in posts if x["id"] == pid), None)
+    if not p:
+        await message.answer("Bunday post topilmadi.")
+        return
+    if len(parts) > 1:
+        nums = [int(x.rstrip("/").split("/")[-1]) for x in parts[1:] if x.rstrip("/").split("/")[-1].isdigit()]
+        msgs_log[pid] = {"text": nums[0] if nums else None, "albums": nums[1:]}
+        save_msgs()
+    rec = msgs_log.get(pid)
+    if not rec:
+        await message.answer("Bu postning xabar raqamlari saqlanmagan. Raqamlarni yozing: /tahrir "
+                             f"{pid} <matn_id> <albom1_id> <albom2_id>")
+        return
+    done, err = 0, []
+    if rec.get("text"):
+        try:
+            if (p.get("img") or "").strip():
+                await bot.edit_message_caption(chat_id=CHANNEL_ID, message_id=rec["text"], caption=post_caption(p), parse_mode="HTML")
+            else:
+                await bot.edit_message_text(channel_text(p), chat_id=CHANNEL_ID, message_id=rec["text"], parse_mode="HTML",
+                                            link_preview_options=LinkPreviewOptions(is_disabled=True))
+            done += 1
+        except Exception as e:
+            if "not modified" not in str(e):
+                err.append(f"matn: {e}")
+    for mid, a in zip(rec.get("albums") or [], p.get("albums") or []):
+        try:
+            await bot.edit_message_caption(chat_id=CHANNEL_ID, message_id=mid, caption=album_caption(p, a), parse_mode="HTML")
+            done += 1
+        except Exception as e:
+            if "not modified" not in str(e):
+                err.append(f"albom {mid}: {e}")
+    await message.answer(f"✅ Yangilandi: {done} ta xabar." + (("\n❗ " + "\n❗ ".join(err)) if err else ""))
 
 
 @dp.message(Command("sora"))

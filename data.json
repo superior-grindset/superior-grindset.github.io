@@ -1301,7 +1301,7 @@
    "id": "zal2",
    "cat": "trening",
    "date": "2026-11-27",
-   "time": "13:00",
+   "time": "17:00",
    "title": "Zaldan to'g'ri texnika bilan mashqlar: orqa va bitseps",
    "stat": "1%",
    "stat_note": "har kuni yaxshilanamiz",
@@ -1344,7 +1344,22 @@
      ],
      "note": "Bitseps: 12-15 → 9-11 → 6-9 takror. Tebranmang, tirsak tanada qotib tursin."
     }
-   ]
+   ],
+   "auto": true
+  },
+  {
+   "id": "pump1",
+   "cat": "trening",
+   "date": "2026-11-27",
+   "time": "17:00",
+   "auto": true,
+   "title": "Qanot va bitseps kunidan keyin: pump",
+   "stat": "1%",
+   "stat_note": "har kuni yaxshilanamiz",
+   "img": "pump1.jpg",
+   "caption": "💪 <b>Qanot va bitseps kunidan keyin: pump</b>\n\nBugungi mashqlar tugagach olingan kadr. Pump mashqdan keyin 1-2 soat turadi, haqiqiy natija esa har kungi izchillikda.\n\nHar kuni 1% yaxshilanamiz 🦾",
+   "tg": "Qanot va bitseps kunidan keyin: pump\n\nBugungi mashqlar tugagach olingan kadr. Pump mashqdan keyin 1-2 soat turadi, haqiqiy natija esa har kungi izchillikda.\n\nHar kuni 1% yaxshilanamiz 🦾",
+   "body": "Bugungi mashqlar tugagach olingan kadr. Pump mashqdan keyin 1-2 soat turadi, haqiqiy natija esa har kungi izchillikda.\n\nHar kuni 1% yaxshilanamiz"
   }
  ],
  "toc": [
