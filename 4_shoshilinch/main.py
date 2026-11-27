@@ -1,0 +1,1484 @@
+"""
+SUPERIOR GRINDSET BOT — yengil versiya (Railway Free uchun).
+
+Sayt alohida, GitHub Pages'da (hamma uchun ochiq), shuning uchun
+bu yerda faqat bot ishlaydi: kam xotira, 24/7 polling.
+
+YANGI: kanalga avtomatik post.
+    Bot har daqiqada saytdagi data.json ni o'qiydi. Postning "date" + "time"
+    (Toshkent vaqti) kelganda uni kanalga yuboradi. Sayt ham shu vaqtgacha
+    postni yashiradi — bitta data.json yuklansa, ikkalasi birga ishlaydi.
+    Har kuni 17:00 da ertangi post yo'q bo'lsa, egasiga eslatma yuboradi.
+
+TARTIB (14.10.2026): 13:00 — egasidan so'raydi (✅/❌); 19:00 — tayyor postni yuborib
+    "kanalga qo'ying" deb eslatadi (egasi Forward → kanal, Hide sender name);
+    egasi qo'ysa — bot uni taniydi va mundarijaga ulaydi; 20:30 gacha qo'yilmasa — bot o'zi chiqaradi.
+    ❌ Yo'q bosilsa — hech narsa chiqmaydi.
+ESKI IZOH (10.10.2026): bot postni o'zicha chiqarmaydi.
+    Har kuni 13:00 da bugungi postni egasiga ko'rsatadi:
+    [✅ Ha, chiqar] [❌ Yo'q]. "Ha" bo'lsa — belgilangan vaqtda (20:00)
+    chiqadi; "Yo'q" bo'lsa — chiqmaydi, post o'zgartiriladi va
+    /sora <id> bilan qayta so'raladi. Javob bo'lmasa — chiqmaydi.
+    Post rasmli bo'lishi mumkin: data.json da "img" (masalan p_kirish.jpg)
+    va "caption" (HTML, <=1024 belgi) bo'lsa — rasm + matn + oxirida "📖 Batafsil" havolasi.
+    (Tugma ishlatilmaydi: inline tugmali postga kanalda izoh yozib bo'lmaydi.)
+    /tuzat <id> <post linki> — bot ilgari chiqargan postdagi tugmani olib, matnni yangilaydi.
+
+Kerakli o'zgaruvchilar (Railway → Variables):
+    BOT_TOKEN  — BotFather bergan token (MAXFIY)
+    SITE_URL   — https://superior-grindset.github.io
+    CHANNEL_ID — (ixtiyoriy) standart: @superior_grindset
+Bot kanalda ADMIN bo'lishi va "Post joylash" huquqi bo'lishi kerak.
+"""
+
+import asyncio
+import html
+import json
+import logging
+import os
+import re
+import secrets
+import time
+from urllib.parse import quote
+from datetime import datetime, timedelta, timezone
+
+import aiohttp
+from aiogram import Bot, Dispatcher, F
+from aiogram.filters import Command, CommandObject, CommandStart
+from aiogram.types import (
+    FSInputFile,
+    InputMediaVideo,
+    BufferedInputFile,
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    LinkPreviewOptions,
+    Message,
+    ReplyKeyboardMarkup,
+)
+
+try:  # kompyuterda .env fayli bo'lsa o'qiydi; serverda shart emas
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+logging.basicConfig(level=logging.INFO)
+
+# ==========================
+# SOZLAMALAR
+# ==========================
+
+TOKEN = os.getenv("BOT_TOKEN")
+if not TOKEN:
+    raise SystemExit("BOT_TOKEN topilmadi. Railway → Variables bo'limiga qo'shing.")
+
+CHANNEL_URL = "https://t.me/superior_grindset"
+CHANNEL_ID = os.getenv("CHANNEL_ID", "@superior_grindset").strip()
+SITE_URL = os.getenv("SITE_URL", "").strip()
+OWNER_IDS = {1015734340}
+
+TZ = timezone(timedelta(hours=5))   # Toshkent (yozgi vaqt yo'q)
+DEFAULT_TIME = "20:00"              # post vaqti ko'rsatilmasa
+WINDOW_MIN = 15                     # vaqt kelgandan keyin shu daqiqa ichida yuboradi
+REMIND_HOUR = 17                    # ertangi post yo'qligi haqida eslatma soati
+POSTED_FILE = "posted.json"
+ASK_HOUR = 13                       # bugungi postni egasidan so'rash soati
+REMIND_BEFORE_MIN = 60              # post vaqtidan 60 daqiqa oldin (19:00) "kanalga qo'ying" eslatmasi
+AUTO_AFTER_MIN = 30                 # egasi qo'ymasa, post vaqtidan 30 daqiqa keyin (20:30) bot o'zi chiqaradi
+APPROVE_FILE = "approvals.json"     # {post_id: "asked" | "yes" | "no" | "missed"}
+
+bot = Bot(token=TOKEN)
+dp = Dispatcher()
+
+# ==========================
+# MENYULAR
+# ==========================
+
+main_menu = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="🏋️ Mashg'ulotlar"), KeyboardButton(text="📚 Ma'lumotlar")],
+        [KeyboardButton(text="🌐 Sayt"), KeyboardButton(text="ℹ️ Kanal haqida")],
+        [KeyboardButton(text="✍️ Savol berish")],
+    ],
+    resize_keyboard=True,
+)
+
+training_menu = ReplyKeyboardMarkup(
+    keyboard=[
+        [KeyboardButton(text="💪 Ko'krak"), KeyboardButton(text="🏋️ Orqa")],
+        [KeyboardButton(text="💪 Bitseps"), KeyboardButton(text="💪 Tritseps")],
+        [KeyboardButton(text="🏋️ Yelka"), KeyboardButton(text="🦵 Oyoq")],
+        [KeyboardButton(text="⬅️ Orqaga")],
+    ],
+    resize_keyboard=True,
+)
+
+# Mushak guruhlari: tugma matni → (id, sarlavha). Videolar saytdagi data.json dan olinadi —
+# sayt va bot doim bir xil bo'ladi (3 rejim: trener / premium zal / oddiy zal).
+TRAINING = {
+    "💪 Ko'krak": ("chest", "💪 KO'KRAK"),
+    "💪 Tritseps": ("triceps", "💪 TRITSEPS"),
+    "🏋️ Orqa": ("back", "🏋️ ORQA"),
+    "💪 Bitseps": ("biceps", "💪 BITSEPS"),
+    "🦵 Oyoq": ("legs", "🦵 OYOQ"),
+    "🏋️ Yelka": ("shoulders", "🏋️ YELKA"),
+}
+MUSCLE_TITLE = {v[0]: v[1] for v in TRAINING.values()}
+
+SOURCES = [
+    ("trainer", "🎓 Trener videolari", "YouTube'dagi tajribali trenerlardan to'g'ri texnika."),
+    ("premium", "💎 Premium zal", "Mening mashg'ulotlarim — zamonaviy jihozlar bilan."),
+    ("gym", "🏋️ Oddiy zal", "Mening mashg'ulotlarim — oddiy zalda, hamma uchun."),
+]
+SOURCE_NAME = {k: n for k, n, _ in SOURCES}
+SOURCE_DESC = {k: d for k, _, d in SOURCES}
+
+# data.json yuklanmasa ishlatiladigan zaxira (premium zal postlari)
+FALLBACK_EXERCISES = [
+    {"muscle": "chest", "source": "premium", "name": "Ko'krak mashqlari", "video": "https://t.me/superior_grindset/261"},
+    {"muscle": "triceps", "source": "premium", "name": "Tritseps mashqlari", "video": "https://t.me/superior_grindset/265"},
+    {"muscle": "back", "source": "premium", "name": "Orqa (qanot) mashqlari", "video": "https://t.me/superior_grindset/276"},
+    {"muscle": "biceps", "source": "premium", "name": "Bitseps mashqlari", "video": "https://t.me/superior_grindset/284"},
+    {"muscle": "legs", "source": "premium", "name": "Oyoq mashqlari", "video": "https://t.me/superior_grindset/289"},
+    {"muscle": "shoulders", "source": "premium", "name": "Yelka mashqlari", "video": "https://t.me/superior_grindset/299"},
+]
+
+# ==========================
+# KANALGA AVTOMATIK POST
+# ==========================
+
+def load_posted() -> set:
+    try:
+        with open(POSTED_FILE, encoding="utf-8") as f:
+            return set(json.load(f))
+    except Exception:
+        return set()
+
+
+def save_posted() -> None:
+    try:
+        with open(POSTED_FILE, "w", encoding="utf-8") as f:
+            json.dump(sorted(posted), f)
+    except Exception:
+        logging.exception("posted.json yozilmadi")
+
+
+posted = load_posted()
+
+
+def load_approvals() -> dict:
+    try:
+        with open(APPROVE_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+
+def save_approvals() -> None:
+    try:
+        with open(APPROVE_FILE, "w", encoding="utf-8") as f:
+            json.dump(approvals, f)
+    except Exception:
+        logging.exception("approvals.json yozilmadi")
+
+
+approvals = load_approvals()
+
+# ==========================
+# BOT STATISTIKASI
+# ==========================
+# users.json: {"<id>": {"name": o'zi aytgan ism yoki "", "asked": bool, "first": "YYYY-MM-DD", "last": "YYYY-MM-DD"}}
+# stats.json: {"questions": {"YYYY-MM-DD": n}}
+# Eslatma: Railway bepulda bot qayta deploy qilinsa bu fayllar o'chishi mumkin.
+USERS_FILE = "users.json"
+STATS_FILE = "stats.json"
+
+
+def _load(path: str, default):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return default
+
+
+def _save(path: str, data) -> None:
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
+    except Exception:
+        logging.exception("%s yozilmadi", path)
+
+
+users = _load(USERS_FILE, {})
+stats = _load(STATS_FILE, {"questions": {}})
+
+# ---- ANONIM XABARLAR: t.me/<bot>?start=anonim ----
+# anon.json: {"<token>": <user_id>} — egasiga faqat token ko'rinadi, ism/profil emas.
+ANON_FILE = "anon.json"
+ANON_ACTIVE_FILE = "anon_active.json"
+anon_map = _load(ANON_FILE, {})
+_anon_active: set = set(_load(ANON_ACTIVE_FILE, []))  # hozir anonim rejimdagilar
+
+
+def set_anon(uid: int, on: bool) -> None:
+    if on == (uid in _anon_active):
+        return
+    (_anon_active.add if on else _anon_active.discard)(uid)
+    _save(ANON_ACTIVE_FILE, sorted(_anon_active))
+
+
+def anon_token(uid: int) -> str:
+    for t, v in anon_map.items():
+        if int(v) == uid:
+            return t
+    t = secrets.token_hex(3)
+    anon_map[t] = uid
+    _save(ANON_FILE, anon_map)
+    return t
+
+
+def today() -> str:
+    return datetime.now(TZ).date().isoformat()
+
+
+def display_name(uid) -> str:
+    """Foydalanuvchi o'zi aytgan ism; aytmagan bo'lsa — 'Ismsiz'. Telegram ismi ko'rsatilmaydi."""
+    rec = users.get(str(uid)) or {}
+    return rec.get("name") or "Ismsiz foydalanuvchi"
+
+
+async def track_user(handler, event, data):
+    """Har bir shaxsiy xabarda foydalanuvchini eslab qoladi (faqat id va sana)."""
+    u = getattr(event, "from_user", None)
+    if u and not u.is_bot and event.chat.type == "private" and u.id not in OWNER_IDS:
+        key = str(u.id)
+        d = today()
+        rec = users.get(key)
+        if rec is None:
+            users[key] = {"name": "", "asked": False, "first": d, "last": d}
+            _save(USERS_FILE, users)
+        elif rec.get("last") != d:
+            rec["last"] = d
+            _save(USERS_FILE, users)
+    return await handler(event, data)
+
+
+dp.message.outer_middleware(track_user)
+
+
+def site_base() -> str:
+    return SITE_URL.rstrip("/") if SITE_URL.startswith("https://") else ""
+
+
+def when_of(p: dict):
+    try:
+        d = datetime.strptime(p["date"] + " " + (p.get("time") or DEFAULT_TIME), "%Y-%m-%d %H:%M")
+        return d.replace(tzinfo=TZ)
+    except Exception:
+        return None
+
+
+_data_cache = {"t": 0.0, "data": None}
+
+
+async def fetch_data(max_age: int = 0) -> dict:
+    """Saytdagi data.json ni o'qiydi. max_age soniya ichida qayta so'ramaydi."""
+    if _data_cache["data"] is not None and time.time() - _data_cache["t"] < max_age:
+        return _data_cache["data"]
+    base = site_base()
+    if not base:
+        return {}
+    url = f"{base}/data.json?t={int(time.time())}"
+    async with aiohttp.ClientSession() as s:
+        async with s.get(url, timeout=aiohttp.ClientTimeout(total=20)) as r:
+            r.raise_for_status()
+            data = await r.json(content_type=None)
+    _data_cache.update(t=time.time(), data=data)
+    return data
+
+
+async def fetch_posts() -> list:
+    data = await fetch_data()
+    return [p for p in data.get("posts", []) if p.get("id") and p.get("date")]
+
+
+async def fetch_exercises() -> list:
+    try:
+        ex = (await fetch_data(max_age=300)).get("exercises", [])
+        if ex:
+            return ex
+    except Exception:
+        logging.exception("data.json (mashqlar) o'qilmadi")
+    return FALLBACK_EXERCISES
+
+
+def site_link(user, path: str = "") -> str:
+    """Botdan saytga havola: ?n=<ism> — sayt salomda ismni ko'rsatadi. Ismsiz bo'lsa bo'sh."""
+    base = site_base()
+    if not base:
+        return ""
+    name = ""
+    if user:
+        name = (users.get(str(user.id)) or {}).get("name", "")
+        if not name and user.id in OWNER_IDS:
+            name = user.first_name or ""
+    return f"{base}/?n={quote(name)}" + (f"#{path}" if path else "")
+
+
+def src_of(e: dict) -> str:
+    return e.get("source") if e.get("source") in SOURCE_NAME else "gym"
+
+
+def channel_text(p: dict) -> str:
+    """Kanal uchun qisqa matn: "tg" maydoni (1-qator qalin) yoki sarlavha + matn."""
+    raw = (p.get("tg") or "").strip()
+    greet = "Assalomu alaykum! 👋\n\n"
+    if raw:
+        first, _, rest = raw.partition("\n")
+        text = greet + f"<b>{html.escape(first, quote=False)}</b>" + (("\n" + html.escape(rest, quote=False)) if rest else "")
+    else:
+        text = greet + f"<b>{html.escape(p.get('title', ''), quote=False)}</b>\n\n{html.escape(p.get('body', ''), quote=False)}"
+    base = site_base()
+    if base:
+        text += f'\n\n👉 <a href="{base}/p/{p["id"]}/">To\'liq maqola saytda</a>'
+    return text
+
+
+RAW_BASE = "https://raw.githubusercontent.com/superior-grindset/superior-grindset.github.io/main"
+
+
+async def fetch_image(img: str) -> bytes:
+    """Rasmni avval saytdan, bo'lmasa GitHub raw dan yuklab oladi."""
+    urls = [img] if img.startswith("http") else [f"{site_base()}/{img.lstrip('/')}", f"{RAW_BASE}/{img.lstrip('/')}"]
+    async with aiohttp.ClientSession() as s:
+        for u in urls:
+            try:
+                async with s.get(u, timeout=aiohttp.ClientTimeout(total=20)) as r:
+                    if r.status == 200:
+                        return await r.read()
+            except Exception:
+                continue
+    raise RuntimeError(f"Rasm topilmadi: {img} — GitHub'ga yuklanganini tekshiring.")
+
+
+def post_caption(p: dict) -> str:
+    """Rasmli post matni + oxirida "📖 Batafsil" HAVOLA (tugma emas — tugma izohlarni yopib qo'yadi)."""
+    base = site_base()
+    cap = (p.get("caption") or "").strip()
+    if not cap:
+        return channel_text(p)          # channel_text o'zi sayt havolasini qo'shadi
+    if base:
+        cap += f'\n\n📖 <a href="{base}/p/{p["id"]}/">Batafsil — saytda</a>'
+    return cap
+
+
+async def send_post(chat_id, p: dict):
+    """Rasmli post (img + caption + Batafsil havolasi) yoki eski matnli post.
+    Inline tugma QO'YILMAYDI — aks holda kanalda izoh (comment) yozib bo'lmay qoladi."""
+    base = site_base()
+    img = (p.get("img") or "").strip()
+    if img and base:
+        photo = img if img.startswith("http") else f"{base}/{img.lstrip('/')}"
+        try:
+            return await bot.send_photo(chat_id, photo=photo, caption=post_caption(p),
+                                        parse_mode="HTML")
+        except Exception as e:
+            # Telegram rasmni URL dan ololmasa (sayt hali yangilanmagan va h.k.) — o'zimiz yuklab, fayl qilib yuboramiz
+            logging.warning("Rasm URL orqali ketmadi (%s), fayl qilib yuboraman", e)
+            data = await fetch_image(img)
+            return await bot.send_photo(chat_id, photo=BufferedInputFile(data, filename=img.split("/")[-1]),
+                                        caption=post_caption(p), parse_mode="HTML")
+    return await bot.send_message(
+        chat_id, channel_text(p), parse_mode="HTML",
+        link_preview_options=LinkPreviewOptions(is_disabled=True),
+    )
+
+
+def approve_kb(pid: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text="✅ Ha, chiqar", callback_data=f"ap:yes:{pid}"),
+        InlineKeyboardButton(text="❌ Yo'q", callback_data=f"ap:no:{pid}"),
+    ]])
+
+
+async def ask_owner(p: dict, missed: bool = False) -> None:
+    """Egasiga postni ko'rsatadi va chiqarish-chiqarmaslikni so'raydi."""
+    w = when_of(p)
+    t = f"{w:%d.%m %H:%M}" if w else "belgilangan vaqtda"
+    for uid in OWNER_IDS:
+        try:
+            if missed:
+                await bot.send_message(uid, f"⚠️ Kechagi post ({t}) kanalga chiqmay qolgan. Ko'rib chiqing:")
+                await send_post(uid, p)
+                await bot.send_message(
+                    uid, f"Shu post hozir chiqsinmi?\n✅ — darrov kanalga chiqaraman.\n❌ — chiqmaydi.\n<code>{html.escape(p['id'])}</code>",
+                    parse_mode="HTML", reply_markup=approve_kb(p["id"]))
+                continue
+            await bot.send_message(uid, f"📝 Bugungi post ({t} da kanalga chiqadi). Ko'rib chiqing:")
+            await send_post(uid, p)
+            await bot.send_message(
+                uid, f"Shu post bugun ({t}) chiqsinmi?\n✅ — 19:00 da eslataman, o'zingiz qo'yasiz (20:30 gacha qo'yilmasa, o'zim chiqaraman).\n❌ — chiqmaydi.\n<code>{html.escape(p['id'])}</code>",
+                parse_mode="HTML", reply_markup=approve_kb(p["id"]))
+        except Exception as e:
+            logging.exception("Egaga so'rov yuborilmadi")
+            try:
+                await bot.send_message(uid, f"❗ Postni ko'rsatib bo'lmadi ({p['id']}): {e}")
+            except Exception:
+                pass
+    approvals[p["id"]] = "asked"
+    save_approvals()
+
+
+reminded: set = set()   # bugun "kanalga qo'ying" eslatmasi yuborilgan postlar
+
+
+async def remind_owner(p: dict, auto_at) -> None:
+    """19:00 — tayyor postni egasiga yuboradi: uni Forward → kanal (Hide sender name) qilsa bo'ldi."""
+    for uid in OWNER_IDS:
+        try:
+            await bot.send_message(uid, "⏰ Vaqt bo'ldi! Bugungi postni kanalga qo'ying 👇")
+            await send_post(uid, p)
+            await bot.send_message(
+                uid,
+                "Qanday qo'yiladi: postni bosib turing → Forward → kanal → «Hide sender name» → yuboring.\n"
+                f"Mundarijaga o'zim ulayman. {auto_at:%H:%M} gacha qo'yilmasa — kanalga o'zim chiqaraman.")
+        except Exception:
+            logging.exception("Eslatma yuborilmadi")
+
+
+async def publish(p: dict) -> bool:
+    try:
+        msg = await send_post(CHANNEL_ID, p)
+        msgs_log[p["id"]] = {"text": msg.message_id, "albums": []}
+        save_msgs()
+        posted.add(p["id"])
+        save_posted()
+        await notify_owners(f"✅ Kanalga chiqdi: {p.get('title', p['id'])}")
+    except Exception as e:
+        logging.exception("Kanalga yuborilmadi")
+        await notify_owners(f"❗ Kanalga yuborilmadi: {p.get('title', p['id'])}\n{e}\n\nBot kanalda admin ekanini tekshiring.")
+        return False
+    # mundarijaga shu post havolasini qo'shamiz (agar mundarijada bo'lsa)
+    try:
+        await update_toc({p["id"]: post_url(msg.message_id)}, quiet_if_absent=True)
+    except Exception:
+        logging.exception("Mundarija yangilanmadi")
+    # postga biriktirilgan mashq videolari ("albums") — matndan keyin albom qilib
+    if p.get("albums"):
+        await send_post_videos(CHANNEL_ID, p)
+    return True
+
+
+MSGS_FILE = "msgs.json"      # {post_id: {"text": message_id, "albums": [birinchi xabar id, ...]}}
+msgs_log = {}
+try:
+    with open(MSGS_FILE, encoding="utf-8") as _f:
+        msgs_log = json.load(_f)
+except Exception:
+    msgs_log = {}
+
+
+def save_msgs() -> None:
+    try:
+        with open(MSGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(msgs_log, f)
+    except Exception:
+        logging.exception("msgs.json yozilmadi")
+
+
+def album_caption(p: dict, a: dict) -> str:
+    base = site_base()
+    ids = a.get("ids") or []
+    lines = a.get("lines") or []
+    note = a.get("note") or ""
+    link = f"\n\n📖 Texnika va batafsil saytda: {base}/p/{p['id']}/" if base else ""
+    plain_len = len(a.get("title", "")) + 2 + sum(len(x) + 1 for x in lines) + (len(note) + 2 if note else 0) + len(link)
+    if plain_len > 1000 and note:
+        note = ""
+    cap = f"<b>{html.escape(a.get('title', ''), quote=False)}</b>"
+    if lines:
+        rows = []
+        for k, x in enumerate(lines):
+            t = html.escape(x, quote=False)
+            if base and k < len(ids):
+                t = f'<a href="{base}/e/{ids[k]}/">{t}</a>'
+            rows.append(t)
+        cap += "\n\n" + "\n".join(rows)
+    if note:
+        cap += "\n\n" + html.escape(note, quote=False)
+    if base:
+        cap += f'\n\n📖 <a href="{base}/p/{p["id"]}/">Texnika va batafsil saytda</a>'
+    return cap
+
+
+async def send_post_videos(chat_id, p: dict) -> int:
+    """Postdagi "albums" bo'yicha mashq videolarini ALBOM qilib yuboradi (bitta albom = bitta xabar, izoh pastida).
+    albums: [{"title": "...", "ids": [mashq id lari], "lines": ["1. ...", ...], "note": "..."}]"""
+    ex = {e.get("id"): e for e in await fetch_exercises()}
+    root = os.path.dirname(os.path.abspath(__file__))
+    total = 0
+    if chat_id == CHANNEL_ID:
+        msgs_log.setdefault(p["id"], {"text": None, "albums": []})["albums"] = []
+    for a in p.get("albums") or []:
+        media, rels = [], []
+        for i, vid in enumerate(a.get("ids") or []):
+            e = ex.get(vid)
+            mm = re.match(r"https?://[^/]+/((?:videos/)?[\w.\-]+\.mp4)$", (e or {}).get("video", ""))
+            if not mm:
+                await notify_owners(f"❗ Video topilmadi: {vid}")
+                continue
+            rel = mm.group(1)
+            rels.append(rel)
+            media.append(VIDEO_IDS.get(rel) or FSInputFile(os.path.join(root, rel)))
+        if not media:
+            continue
+        cap = album_caption(p, a)
+        items = [InputMediaVideo(media=mv, caption=cap if k == 0 else None, parse_mode="HTML" if k == 0 else None,
+                                 supports_streaming=True, width=720, height=1280) for k, mv in enumerate(media)]
+        try:
+            if len(items) == 1:
+                msg = await bot.send_video(chat_id, video=media[0], caption=cap, parse_mode="HTML", supports_streaming=True, width=720, height=1280)
+                msgs = [msg]
+            else:
+                msgs = await bot.send_media_group(chat_id, items)
+            for rel, mg in zip(rels, msgs):
+                if mg.video:
+                    VIDEO_IDS[rel] = mg.video.file_id
+            if chat_id == CHANNEL_ID and msgs:
+                rec = msgs_log.setdefault(p["id"], {"text": None, "albums": []})
+                rec.setdefault("albums", []).append(msgs[0].message_id)
+                save_msgs()
+            total += len(msgs)
+        except Exception as e:
+            logging.exception("Albom yuborilmadi")
+            await notify_owners(f"❗ Albom yuborilmadi ({a.get('title', '')}): {e}")
+    return total
+
+
+# ==========================
+# MUNDARIJA (kanalda pin qilingan, bot o'zi yuritadi)
+# ==========================
+# data.json: "toc": [{"s": "🥗 OVQATLANISH", "items": [{"t": "Mavzu nomi", "post": "post_id"}, ...]}, ...]
+# Havolalar hech qayerda saqlanmaydi — pin qilingan mundarijaning o'zidan o'qiladi
+# (Railway qayta deploy qilsa ham yo'qolmaydi).
+
+TOC_HEAD = "📚 MUNDARIJA"
+
+
+def post_url(message_id: int) -> str:
+    return f"{CHANNEL_URL.rstrip('/')}/{message_id}"
+
+
+TOC_INTRO = (
+    "Assalomu alaykum! 👋\n\n"
+    "<b>Superior Grindset</b> — sog'lom va kuchli bo'lishni istagan har bir inson uchun kanal. "
+    "Maqsadimiz — sport va to'g'ri ovqatlanishni oddiy, tushunarli tilda yetkazish, "
+    "toki har kim uni o'z hayotida qo'llay olsin.\n\n"
+    "Kanalda doimiy ravishda foydali va kerakli ma'lumotlar qo'yib boriladi.\n\n"
+    "🤖 Savol bo'lsa: @superior_grindset_bot\n"
+    '🌐 Sayt: <a href="https://superior-grindset.github.io">superior-grindset.github.io</a>'
+)
+
+
+def render_toc(toc: list, links: dict, intro: str = "") -> str:
+    """Salomlashuv + mundarija — bitta pin qilingan xabar. intro: data.json "toc_intro" (HTML) yoki TOC_INTRO."""
+    out = [(intro or TOC_INTRO).strip() + "\n",
+           f"📚 <b>MUNDARIJA</b>",
+           "Mavzu nomini bossangiz — o'sha postga o'tasiz. ⏳ Ro'yxat har yangi post bilan to'ldirib boriladi.\n"]
+    for sec in toc:
+        out.append(f"<b>{html.escape(sec.get('s', ''), quote=False)}</b>")
+        for it in sec.get("items", []):
+            t = html.escape(it.get("t", ""), quote=False)
+            url = links.get(it.get("post", ""))
+            out.append(f'✅ <a href="{html.escape(url)}">{t}</a>' if url else f"• {t}")
+        out.append("")
+    out.append("Fikr va savollaringizni postlar ostida yozing — hammasini o'qiyman.\n")
+    out.append("Har kuni 1% yaxshiroq 💪")
+    return "\n".join(out)
+
+
+async def pinned_toc():
+    """Kanalda pin qilingan bot mundarijasi (Message) yoki None."""
+    chat = await bot.get_chat(CHANNEL_ID)
+    pm = chat.pinned_message
+    if pm and TOC_HEAD in (pm.text or ""):
+        return pm
+    return None
+
+
+def links_from(pm, toc: list) -> dict:
+    """Mavjud mundarijadagi havolalarni o'qiydi: {post_id: url}."""
+    found = {}
+    if pm is None:
+        return found
+    for url, txt in re.findall(r'<a href="([^"]+)">(.*?)</a>', pm.html_text or ""):
+        found[html.unescape(txt).strip()] = html.unescape(url)
+    links = {}
+    for sec in toc:
+        for it in sec.get("items", []):
+            if it.get("t", "").strip() in found and it.get("post"):
+                links[it["post"]] = found[it["t"].strip()]
+    return links
+
+
+async def update_toc(new_links: dict, quiet_if_absent: bool = False) -> str:
+    """Pin qilingan mundarijani yangilaydi. Natija matnini qaytaradi."""
+    toc = (await fetch_data()).get("toc") or []
+    if not toc:
+        return "data.json da \"toc\" yo'q."
+    ids = {it.get("post") for sec in toc for it in sec.get("items", [])}
+    pm = await pinned_toc()
+    if pm is None:
+        if not quiet_if_absent:
+            return "Pin qilingan mundarija topilmadi. Avval /mundarija buyrug'ini yuboring."
+        if any(k in ids for k in new_links):
+            await notify_owners("ℹ️ Pin qilingan mundarija topilmadi — /mundarija yuboring.")
+        return ""
+    if not any(k in ids for k in new_links) and new_links:
+        return "Bu post mundarijada yo'q."
+    links = links_from(pm, toc)
+    links.update({k: v for k, v in new_links.items() if k in ids})
+    text = render_toc(toc, links, (await fetch_data()).get("toc_intro", ""))
+    try:
+        await bot.edit_message_text(text, chat_id=CHANNEL_ID, message_id=pm.message_id, parse_mode="HTML",
+                                    link_preview_options=LinkPreviewOptions(is_disabled=True))
+    except Exception as e:
+        if "not modified" in str(e):
+            return "O'zgarish yo'q."
+        raise
+    return "✅ Mundarija yangilandi."
+
+
+async def notify_owners(text: str) -> None:
+    for uid in OWNER_IDS:
+        try:
+            await bot.send_message(uid, text)
+        except Exception:
+            logging.warning("Egaga xabar yuborilmadi: %s", uid)
+
+
+async def scheduler() -> None:
+    last_remind = None
+    while True:
+        try:
+            now = datetime.now(TZ)
+            posts = await fetch_posts()
+            for p in posts:
+                w = when_of(p)
+                pid = p["id"]
+                if pid in posted or not w:
+                    continue
+                state = approvals.get(pid)
+                # Kecha chiqmay qolgan post (bot o'chib qolgan bo'lsa) — egasidan so'raymiz
+                if (now.date() - w.date()).days == 1:
+                    if state is None:
+                        await ask_owner(p, missed=True)
+                    elif state == "yes":
+                        await publish(p)
+                    continue
+                if w.date() != now.date():
+                    continue
+                # "auto": true — egasidan so'ramasdan, aynan shu vaqtda (1 soat ichida) chiqariladi
+                if p.get("auto"):
+                    if state != "no" and w <= now <= w + timedelta(minutes=60):
+                        await publish(p)
+                    continue
+                remind_at = w - timedelta(minutes=REMIND_BEFORE_MIN)
+                auto_at = w + timedelta(minutes=AUTO_AFTER_MIN)
+                # 1) 13:00 dan keyin — egasidan so'raymiz (✅ Ha / ❌ Yo'q)
+                if state is None and now.hour >= ASK_HOUR and now < auto_at:
+                    await ask_owner(p)
+                    continue
+                if state == "no":
+                    continue
+                # 2) 19:00 — tayyor postni yuborib "kanalga qo'ying" eslatmasi
+                if remind_at <= now < auto_at and pid not in reminded:
+                    reminded.add(pid)
+                    await remind_owner(p, auto_at)
+                    continue
+                # 3) 20:30 gacha egasi qo'ymasa — bot o'zi chiqaradi
+                if auto_at <= now <= auto_at + timedelta(minutes=WINDOW_MIN):
+                    await notify_owners(f"🤖 {auto_at:%H:%M} gacha kanalga qo'yilmadi — o'zim chiqaryapman.")
+                    await publish(p)
+            if now.hour == REMIND_HOUR and last_remind != now.date():
+                last_remind = now.date()
+                tomorrow = (now + timedelta(days=1)).date().isoformat()
+                if not any(p["date"] == tomorrow for p in posts):
+                    await notify_owners("⏰ Ertaga kanal uchun post yo'q.\nClaude bilan yangi maqola tayyorlang va data.json ni GitHub'ga yuklang.")
+        except Exception:
+            logging.exception("Rejalashtiruvchida xato")
+        await asyncio.sleep(60)
+
+# ==========================
+# HANDLERLAR
+# ==========================
+
+# ---- TASDIQLASH: ✅ Ha / ❌ Yo'q (faqat egasi) ----
+
+@dp.callback_query(F.data.startswith("ap:"))
+async def approve_cb(call: CallbackQuery):
+    if not call.from_user or call.from_user.id not in OWNER_IDS:
+        await call.answer()
+        return
+    _, ans, pid = call.data.split(":", 2)
+    try:
+        posts = await fetch_posts()
+    except Exception:
+        posts = []
+    p = next((x for x in posts if x["id"] == pid), None)
+    if not p:
+        await call.answer("Post topilmadi (data.json da yo'q).", show_alert=True)
+        return
+    if pid in posted:
+        await call.answer("Bu post allaqachon chiqqan.", show_alert=True)
+        return
+    w = when_of(p)
+    if ans == "yes" and w and (datetime.now(TZ).date() - w.date()).days == 1:
+        approvals[pid] = "yes"
+        save_approvals()
+        await call.message.edit_text("✅ Tasdiqlandi — hoziroq chiqaryapman.")
+        await publish(p)
+        await call.answer()
+        return
+    if ans == "yes" and w and datetime.now(TZ).date() > w.date():
+        await call.message.edit_text(f"⌛ Bu postning kuni o'tgan. Kerak bo'lsa: /yubor {pid}")
+        await call.answer()
+        return
+    if ans == "yes":
+        approvals[pid] = "yes"
+        save_approvals()
+        now = datetime.now(TZ)
+        auto_at = w + timedelta(minutes=AUTO_AFTER_MIN) if w else None
+        if auto_at and now >= auto_at:
+            await call.message.edit_text("✅ Tasdiqlandi — vaqti o'tgan, hoziroq chiqaryapman.")
+            await publish(p)
+        else:
+            r = f"{w - timedelta(minutes=REMIND_BEFORE_MIN):%H:%M}" if w else "kechqurun"
+            a = f"{auto_at:%H:%M}" if auto_at else "belgilangan vaqtda"
+            await call.message.edit_text(f"✅ Tasdiqlandi. {r} da postni yuborib eslataman — kanalga o'zingiz qo'yasiz.\n"
+                                         f"{a} gacha qo'yilmasa, o'zim chiqaraman.")
+    else:
+        approvals[pid] = "no"
+        save_approvals()
+        await call.message.edit_text(
+            "❌ Chiqmaydi.\n\nNimani o'zgartirish kerakligini Claude'ga yozing. "
+            f"Yangilangan data.json GitHub'ga yuklangach, /sora {pid} — qayta so'rayman.")
+    await call.answer()
+
+
+@dp.message(Command("tuzat"))
+async def fix_post(message: Message, command: CommandObject):
+    """/tuzat <id> <https://t.me/superior_grindset/123> — kanaldagi (bot chiqargan) postni
+    yangi formatga o'tkazadi: tugmani olib tashlaydi, matnni data.json dagi bilan yangilaydi."""
+    if not is_owner(message):
+        return
+    parts = (command.args or "").split()
+    if len(parts) != 2 or not parts[1].rstrip("/").split("/")[-1].isdigit():
+        await message.answer("Masalan: /tuzat kirish https://t.me/superior_grindset/123")
+        return
+    pid, link = parts
+    mid = int(link.rstrip("/").split("/")[-1])
+    _data_cache["t"] = 0.0
+    try:
+        posts = await fetch_posts()
+    except Exception as e:
+        await message.answer(f"❗ data.json o'qilmadi: {e}")
+        return
+    p = next((x for x in posts if x["id"] == pid), None)
+    if not p:
+        await message.answer("Bunday post topilmadi.")
+        return
+    try:
+        if (p.get("img") or "").strip():
+            await bot.edit_message_caption(chat_id=CHANNEL_ID, message_id=mid,
+                                           caption=post_caption(p), parse_mode="HTML")
+        else:
+            await bot.edit_message_text(channel_text(p), chat_id=CHANNEL_ID, message_id=mid, parse_mode="HTML",
+                                        link_preview_options=LinkPreviewOptions(is_disabled=True))
+    except Exception as e:
+        if "not modified" not in str(e):
+            await message.answer(f"❗ Tahrirlab bo'lmadi: {e}\n(Faqat bot o'zi chiqargan postni tahrirlay oladi.)")
+            return
+    try:
+        await bot.edit_message_reply_markup(chat_id=CHANNEL_ID, message_id=mid,
+                                            reply_markup=InlineKeyboardMarkup(inline_keyboard=[]))
+    except Exception:
+        pass
+    await message.answer("✅ Tayyor: tugma olib tashlandi, oxiriga \"📖 Batafsil\" havolasi qo'shildi. Endi izoh yozsa bo'ladi.")
+
+
+@dp.message(Command("tahrir"))
+async def edit_all(message: Message, command: CommandObject):
+    """/tahrir <post_id> — bot kanalga chiqargan post matnini va albom izohlarini data.json dagi bilan yangilaydi.
+    Eski (xabar raqami saqlanmagan) postlar uchun: /tahrir <post_id> <matn_id> <albom1_id> <albom2_id> ... (t.me/.../123 dagi 123)"""
+    if not is_owner(message):
+        return
+    parts = (command.args or "").split()
+    if not parts:
+        await message.answer("Masalan: /tahrir zal2\nEski post uchun: /tahrir zal1 301 302 303 (xabar raqamlari)")
+        return
+    pid = parts[0]
+    _data_cache["t"] = 0.0
+    try:
+        posts = await fetch_posts()
+    except Exception as e:
+        await message.answer(f"❗ data.json o'qilmadi: {e}")
+        return
+    p = next((x for x in posts if x["id"] == pid), None)
+    if not p:
+        await message.answer("Bunday post topilmadi.")
+        return
+    if len(parts) > 1:
+        nums = [int(x.rstrip("/").split("/")[-1]) for x in parts[1:] if x.rstrip("/").split("/")[-1].isdigit()]
+        msgs_log[pid] = {"text": nums[0] if nums else None, "albums": nums[1:]}
+        save_msgs()
+    rec = msgs_log.get(pid)
+    if not rec:
+        await message.answer("Bu postning xabar raqamlari saqlanmagan. Raqamlarni yozing: /tahrir "
+                             f"{pid} <matn_id> <albom1_id> <albom2_id>")
+        return
+    done, err = 0, []
+    if rec.get("text"):
+        try:
+            if (p.get("img") or "").strip():
+                await bot.edit_message_caption(chat_id=CHANNEL_ID, message_id=rec["text"], caption=post_caption(p), parse_mode="HTML")
+            else:
+                await bot.edit_message_text(channel_text(p), chat_id=CHANNEL_ID, message_id=rec["text"], parse_mode="HTML",
+                                            link_preview_options=LinkPreviewOptions(is_disabled=True))
+            done += 1
+        except Exception as e:
+            if "not modified" not in str(e):
+                err.append(f"matn: {e}")
+    for mid, a in zip(rec.get("albums") or [], p.get("albums") or []):
+        try:
+            await bot.edit_message_caption(chat_id=CHANNEL_ID, message_id=mid, caption=album_caption(p, a), parse_mode="HTML")
+            done += 1
+        except Exception as e:
+            if "not modified" not in str(e):
+                err.append(f"albom {mid}: {e}")
+    await message.answer(f"✅ Yangilandi: {done} ta xabar." + (("\n❗ " + "\n❗ ".join(err)) if err else ""))
+
+
+@dp.message(Command("sora"))
+async def ask_again(message: Message, command: CommandObject):
+    """/sora <id> — postni qayta ko'rsatib, Ha/Yo'q so'raydi (o'zgartirilgandan keyin)."""
+    if not is_owner(message):
+        return
+    _data_cache["t"] = 0.0          # yangi data.json ni darhol o'qish uchun
+    p = await find_post(message, command)
+    if not p:
+        return
+    if p["id"] in posted:
+        await message.answer("Bu post allaqachon kanalga chiqqan.")
+        return
+    approvals.pop(p["id"], None)
+    await ask_owner(p)
+
+
+# ---- ISM: birinchi kirganda so'raladi — "✍️ Ismni yozish" yoki "🙈 Ismsiz kirish" ----
+
+name_kb = InlineKeyboardMarkup(inline_keyboard=[[
+    InlineKeyboardButton(text="✍️ Ismni yozish", callback_data="name:write"),
+    InlineKeyboardButton(text="🙈 Ismsiz kirish", callback_data="name:skip"),
+]])
+awaiting_name = set()
+GREET_SECONDS = 3
+_bg = set()  # fon vazifalariga havola (GC o'chirib yubormasin)
+
+
+def run_bg(coro) -> None:
+    t = asyncio.create_task(coro)
+    _bg.add(t)
+    t.add_done_callback(_bg.discard)
+
+
+async def ask_name(message: Message):
+    awaiting_name.add(message.from_user.id)  # tugmani bosmay yozib yuborsa ham qabul qilinadi
+    await message.answer("🏆 SUPERIOR GRINDSET botimizga xush kelibsiz!\n\nIsmingiz?", reply_markup=name_kb)
+
+
+async def greet(chat_id: int, name: str = "") -> None:
+    """3 soniyalik salom, keyin asosiy menyu."""
+    hi = f"Assalomu alaykum, {name}! 👋\nXush kelibsiz!" if name else "Assalomu alaykum! 👋\nXush kelibsiz!"
+    m = await bot.send_message(chat_id, hi)
+    await asyncio.sleep(GREET_SECONDS)
+    try:
+        await bot.delete_message(chat_id, m.message_id)
+    except Exception:
+        pass
+    await bot.send_message(chat_id, "🏆 SUPERIOR GRINDSET\n\nKerakli bo'limni tanlang.", reply_markup=main_menu)
+
+
+async def finish_intro(chat_id: int, uid: int, name: str) -> None:
+    awaiting_name.discard(uid)
+    rec = users.setdefault(str(uid), {"first": today(), "last": today()})
+    first_time = not rec.get("asked")
+    rec["name"] = name
+    rec["asked"] = True
+    _save(USERS_FILE, users)
+    if first_time:
+        await notify_owners(f"👋 Yangi foydalanuvchi: {name or 'Ismsiz'}\nJami: {len(users)} ta")
+    run_bg(greet(chat_id, name))
+
+
+ANON_INTRO = (
+    "🕶 <b>ANONIM XABAR</b>\n\n"
+    "Savolingiz, fikringiz yoki taklifingizni yozing — ismingiz va profilingiz ko'rsatilmaydi.\n"
+    "Javob shu botga keladi.\n\n"
+    "Matn, rasm yoki ovozli xabar yuborishingiz mumkin.\n"
+    "Oddiy rejimga qaytish: /start"
+)
+
+
+@dp.message(CommandStart())
+async def start(message: Message, command: CommandObject = None):
+    u = message.from_user
+    if u and command and (command.args or "").strip().lower() == "anonim":
+        set_anon(u.id, True)
+        anon_token(u.id)
+        await message.answer(ANON_INTRO, parse_mode="HTML")
+        return
+    if u:
+        set_anon(u.id, False)
+    if u and u.id not in OWNER_IDS and not (users.get(str(u.id)) or {}).get("asked"):
+        await ask_name(message)
+        return
+    name = (users.get(str(u.id)) or {}).get("name", "") if u else ""
+    if not name and u and u.id in OWNER_IDS:
+        name = u.first_name or ""
+    run_bg(greet(message.chat.id, name))
+
+
+@dp.message(Command("ism"))
+async def change_name(message: Message):
+    await ask_name(message)
+
+
+@dp.callback_query(F.data == "name:write")
+async def name_write(call: CallbackQuery):
+    awaiting_name.add(call.from_user.id)
+    await call.answer()
+    try:
+        await call.message.edit_text("✍️ Ismingizni yozing:")
+    except Exception:
+        await call.message.answer("✍️ Ismingizni yozing:")
+
+
+@dp.callback_query(F.data == "name:skip")
+async def name_skip(call: CallbackQuery):
+    await call.answer()
+    try:
+        await call.message.delete()
+    except Exception:
+        pass
+    await finish_intro(call.message.chat.id, call.from_user.id, "")
+
+
+@dp.message(F.text, F.func(lambda m: m.from_user and m.from_user.id in awaiting_name))
+async def got_name(message: Message):
+    name = " ".join(message.text.split())[:40]
+    if not name or name.startswith("/"):
+        await message.answer("Iltimos, ismingizni yozing yoki «Ismsiz kirish» tugmasini bosing.", reply_markup=name_kb)
+        return
+    await finish_intro(message.chat.id, message.from_user.id, name)
+
+
+@dp.message(F.text.in_({"🏋️ Mashg'ulotlar", "🏋️ Trening"}))
+async def training(message: Message):
+    await message.answer("🏋️ MASHG'ULOTLAR\n\nQaysi mushak guruhini mashq qilmoqchisiz?", reply_markup=training_menu)
+
+
+_tg_links = {"t": 0.0, "d": {}}
+
+
+async def channel_links(toc: list) -> dict:
+    """Pin qilingan mundarijadagi {post_id: kanal havolasi}. 10 daqiqa keshlanadi."""
+    if time.time() - _tg_links["t"] < 600:
+        return _tg_links["d"]
+    try:
+        _tg_links["d"] = links_from(await pinned_toc(), toc)
+        _tg_links["t"] = time.time()
+    except Exception:
+        logging.exception("kanal havolalari o'qilmadi")
+    return _tg_links["d"]
+
+
+def _short(t: str, n: int = 48) -> str:
+    t = (t or "").strip()
+    return t if len(t) <= n else t[: n - 1] + "…"
+
+
+@dp.message(F.text == "📚 Ma'lumotlar")
+async def info_menu(message: Message):
+    try:
+        toc = (await fetch_data(max_age=120)).get("toc") or []
+    except Exception:
+        logging.exception("mundarija o'qilmadi")
+        toc = []
+    if not toc:
+        await message.answer("Hozir maqolalarni yuklab bo'lmadi. Birozdan keyin urinib ko'ring.")
+        return
+    rows = [[InlineKeyboardButton(text=sec.get("s", "—"), callback_data=f"i:{i}")] for i, sec in enumerate(toc)]
+    await message.answer(
+        "📚 MA'LUMOTLAR\n\nKanaldagi barcha mavzular shu yerda. Bo'limni tanlang 👇",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+    )
+
+
+@dp.callback_query(F.data == "i:soon")
+async def info_soon(call: CallbackQuery):
+    await call.answer("⏳ Bu mavzu tez orada chiqadi.", show_alert=True)
+
+
+@dp.callback_query(F.data.startswith("i:"))
+async def info_list(call: CallbackQuery):
+    await call.answer()
+    try:
+        idx = int(call.data.split(":", 1)[1])
+        data = await fetch_data(max_age=120)
+        toc = data.get("toc") or []
+        sec = toc[idx]
+    except Exception:
+        await call.message.answer("Hozir yuklab bo'lmadi. Birozdan keyin urinib ko'ring.")
+        return
+    now = datetime.now(TZ)
+    ready = _ready_posts(data, now)
+    rows = []
+    for j, it in enumerate(sec.get("items", [])):
+        title = _short(it.get("t", ""), 52)
+        if it.get("post", "") in ready:
+            rows.append([InlineKeyboardButton(text=title, callback_data=f"j:{idx}:{j}")])
+        else:
+            rows.append([InlineKeyboardButton(text="⏳ " + title, callback_data="i:soon")])
+    await call.message.answer(
+        f"{sec.get('s', '')}\n\nMavzuni tanlang. ⏳ — tez orada chiqadi.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+    )
+
+
+def _ready_posts(data: dict, now) -> dict:
+    ready = {}
+    for p in data.get("posts", []):
+        w = when_of(p)
+        if p.get("id") and w and w <= now:
+            ready[p["id"]] = p
+    return ready
+
+
+@dp.callback_query(F.data.startswith("j:"))
+async def info_item(call: CallbackQuery):
+    await call.answer()
+    try:
+        _, si, ji = call.data.split(":")
+        data = await fetch_data(max_age=120)
+        toc = data.get("toc") or []
+        it = toc[int(si)]["items"][int(ji)]
+    except Exception:
+        await call.message.answer("Hozir yuklab bo'lmadi. Birozdan keyin urinib ko'ring.")
+        return
+    pid = it.get("post", "")
+    if pid not in _ready_posts(data, datetime.now(TZ)):
+        await call.message.answer("⏳ Bu mavzu tez orada chiqadi.")
+        return
+    buttons = []
+    if site_base():
+        buttons.append(InlineKeyboardButton(text="📖 Batafsil", url=site_link(call.from_user, f"/post/{pid}")))
+    link = (await channel_links(toc)).get(pid)
+    if link:
+        buttons.append(InlineKeyboardButton(text="📢 Kanalda", url=link))
+    await call.message.answer(
+        f"<b>{html.escape(it.get('t', ''), quote=False)}</b>\n\nQayerda o'qiysiz?",
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[buttons]) if buttons else None,
+    )
+
+
+@dp.message(F.text == "ℹ️ Kanal haqida")
+async def about(message: Message):
+    await message.answer(
+        "🏆 SUPERIOR GRINDSET\n\n"
+        "Bu bot sizni kanalimizdagi foydali mashqlar videolariga tez va oson olib boradi.\n\n"
+        "📢 Telegram kanal:\n" + CHANNEL_URL
+    )
+
+
+@dp.message(F.text == "🌐 Sayt")
+@dp.message(Command("sayt"))
+async def site(message: Message):
+    if not SITE_URL.startswith("https://"):
+        await message.answer("🌐 Sayt tez orada ochiladi.")
+        return
+    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="➡️ Saytni ochish", url=site_link(message.from_user))]])
+    await message.answer(
+        "🌐 SUPERIOR GRINDSET SAYTI\n\n"
+        "Mashq videolari, texnika, ovqatlanish va foydali ma'lumotlar — hammasi bir joyda.",
+        reply_markup=kb,
+    )
+
+
+@dp.message(F.text == "✍️ Savol berish")
+async def ask_hint(message: Message):
+    await message.answer("✍️ Savolingizni shu yerga yozing (matn, rasm yoki ovozli xabar). Javobni shu botda olasiz.")
+
+
+@dp.message(F.text == "⬅️ Orqaga")
+async def back(message: Message):
+    await message.answer("🏠 Asosiy menyu", reply_markup=main_menu)
+
+
+@dp.message(F.text.in_(TRAINING.keys()))
+async def muscle(message: Message):
+    mid, title = TRAINING[message.text]
+    ex = [e for e in await fetch_exercises() if e.get("muscle") == mid]
+    rows = []
+    for key, name, _ in SOURCES:
+        n = sum(1 for e in ex if src_of(e) == key)
+        if n:
+            rows.append([InlineKeyboardButton(text=f"{name} · {n}", callback_data=f"v:{mid}:{key}")])
+    if site_base():
+        rows.append([InlineKeyboardButton(text="🌐 Saytda ko'rish", url=site_link(message.from_user, f"/m/{mid}"))])
+    text = f"{title}\n\nQaysi videolarni ko'rasiz?" if ex else f"{title}\n\nBu guruhda hozircha video yo'q. Tez orada qo'shiladi."
+    await message.answer(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows) if rows else None)
+
+
+
+VIDEO_IDS: dict = {}   # yuklangan videoning Telegram file_id si (qayta yuklamaslik uchun)
+
+
+async def send_local_video(chat_id, e: dict) -> bool:
+    """data.json dagi video saytdagi /videos/*.mp4 bo'lsa — havola emas, videoning o'zini yuboradi."""
+    url = (e.get("video") or "").strip()
+    m = re.match(r"https?://[^/]+/((?:videos/)?[\w.\-]+\.mp4)$", url)
+    if not m:
+        return False
+    rel = m.group(1)
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), rel)
+    cap = f"🎥 {e.get('name', 'Video')}"
+    if e.get("sets") or e.get("reps"):
+        cap += f"\n🔁 {e.get('sets') or '?'} yondashuv × {e.get('reps') or '?'} takror"
+    if e.get("body"):
+        cap += "\n\n" + e["body"]
+    if len(cap) > 1020:
+        cap = cap[:1017] + "..."
+    try:
+        src = VIDEO_IDS.get(rel) or FSInputFile(path)
+        msg = await bot.send_video(chat_id, video=src, caption=cap, supports_streaming=True, width=720, height=1280)
+        if msg.video:
+            VIDEO_IDS[rel] = msg.video.file_id
+        return True
+    except Exception:
+        logging.exception("Video yuborilmadi: %s", rel)
+        return False
+
+@dp.callback_query(F.data.startswith("v:"))
+async def videos(call: CallbackQuery):
+    try:
+        _, mid, key = call.data.split(":", 2)
+    except ValueError:
+        await call.answer()
+        return
+    ex = [e for e in await fetch_exercises() if e.get("muscle") == mid and src_of(e) == key]
+    await call.answer()
+    if not ex:
+        await call.message.answer("Bu bo'limda hozircha video yo'q.")
+        return
+    await call.message.answer(f"{SOURCE_NAME[key]} — {MUSCLE_TITLE.get(mid, mid)}\n{SOURCE_DESC[key]}")
+    for e in ex:
+        if await send_local_video(call.message.chat.id, e):
+            continue
+        lines = [f"🎥 {e.get('name', 'Video')}"]
+        if e.get("author"):
+            lines.append(f"👤 Trener: {e['author']}")
+        if e.get("sets") or e.get("reps"):
+            lines.append(f"🔁 {e.get('sets') or '?'} × {e.get('reps') or '?'}" + (f" · dam {e['rest']}" if e.get("rest") else ""))
+        lines.append(e.get("video", ""))
+        await call.message.answer("\n".join(lines))
+
+
+@dp.message(Command("myid"))
+async def my_id(message: Message):
+    await message.answer(f"Sizning Telegram ID: {message.from_user.id}")
+
+
+# ---- faqat egasi uchun ----
+
+def is_owner(message: Message) -> bool:
+    return bool(message.from_user) and message.from_user.id in OWNER_IDS
+
+
+@dp.message(Command("navbat"))
+async def queue(message: Message):
+    if not is_owner(message):
+        return
+    now = datetime.now(TZ)
+    try:
+        posts = await fetch_posts()
+    except Exception as e:
+        await message.answer(f"❗ data.json o'qilmadi: {e}")
+        return
+    soon = sorted((p for p in posts if (when_of(p) or now) > now), key=when_of)
+    if not soon:
+        await message.answer("📭 Navbatda post yo'q.")
+        return
+    mark = {"yes": "✅", "no": "❌", "asked": "❓", "missed": "⏸"}
+    lines = [f"{mark.get(approvals.get(p['id']), '•')} {when_of(p):%d.%m %H:%M} — {p.get('title', p['id'])}  (/korish {p['id']})" for p in soon if when_of(p).year < 2090]
+    if not lines:
+        await message.answer("📭 Navbatda post yo'q.")
+        return
+    await message.answer("🗓 Navbatdagi postlar:\n\n" + "\n".join(lines) +
+                         "\n\n✅ tasdiqlangan · ❌ rad etilgan · ❓ javob kutilmoqda · • hali so'ralmagan\n"
+                         "13:00 da so'rayman. Qayta so'rash: /sora <id>")
+
+
+async def find_post(message: Message, command: CommandObject):
+    pid = (command.args or "").strip()
+    if not pid:
+        await message.answer("Post id ni yozing, masalan: /korish uglevod")
+        return None
+    try:
+        posts = await fetch_posts()
+    except Exception as e:
+        await message.answer(f"❗ data.json o'qilmadi: {e}")
+        return None
+    p = next((x for x in posts if x["id"] == pid), None)
+    if not p:
+        await message.answer("Bunday post topilmadi.")
+    return p
+
+
+@dp.message(Command("korish"))
+async def preview(message: Message, command: CommandObject):
+    if not is_owner(message):
+        return
+    p = await find_post(message, command)
+    if p:
+        await send_post(message.chat.id, p)
+
+
+@dp.message(Command("videolar"))
+async def videos_now(message: Message, command: CommandObject):
+    """/videolar <post_id> — postga biriktirilgan videolarni kanalga yuboradi (matn allaqachon chiqqan bo'lsa)."""
+    if not is_owner(message):
+        return
+    p = await find_post(message, command)
+    if not p:
+        return
+    if not p.get("albums"):
+        await message.answer("Bu postda albomlar ro'yxati yo'q.")
+        return
+    await message.answer("⏳ Albomlar kanalga yuborilmoqda...")
+    n = await send_post_videos(CHANNEL_ID, p)
+    await message.answer(f"✅ {n} ta video kanalga chiqdi.")
+
+
+@dp.message(Command("yubor"))
+async def publish_now(message: Message, command: CommandObject):
+    if not is_owner(message):
+        return
+    p = await find_post(message, command)
+    if not p:
+        return
+    await publish(p)
+
+
+@dp.message(Command("mundarija"))
+async def toc_cmd(message: Message):
+    """Kanalga yangi mundarija yuboradi va pin qiladi (eski havolalar saqlanadi)."""
+    if not is_owner(message):
+        return
+    _data_cache["t"] = 0.0
+    try:
+        toc = (await fetch_data()).get("toc") or []
+        if not toc:
+            await message.answer("❗ data.json da \"toc\" yo'q.")
+            return
+        old = await pinned_toc()
+        links = links_from(old, toc)
+        intro = (await fetch_data()).get("toc_intro", "")
+        msg = await bot.send_message(CHANNEL_ID, render_toc(toc, links, intro), parse_mode="HTML",
+                                     link_preview_options=LinkPreviewOptions(is_disabled=True))
+        await bot.pin_chat_message(CHANNEL_ID, msg.message_id, disable_notification=True)
+        await message.answer(f"✅ Mundarija kanalga chiqdi va pin qilindi ({len(links)} ta havola bilan).\n"
+                             "Oldin chiqqan postlarni ulash: /ulash <id> <post linki>")
+    except Exception as e:
+        await message.answer(f"❗ Bo'lmadi: {e}\n\nBot kanalda admin bo'lib, \"Post\", \"Edit\" va \"Pin\" huquqlari yoqilganini tekshiring.")
+
+
+@dp.message(Command("ulash"))
+async def toc_link_cmd(message: Message, command: CommandObject):
+    """/ulash <post_id> <https://t.me/superior_grindset/123> — mundarijadagi mavzuni postga ulaydi."""
+    if not is_owner(message):
+        return
+    parts = (command.args or "").split()
+    if len(parts) != 2 or not parts[1].startswith("https://t.me/"):
+        await message.answer("Masalan: /ulash oqsil https://t.me/superior_grindset/123\n\nId lar: /idlar")
+        return
+    _data_cache["t"] = 0.0
+    try:
+        await message.answer(await update_toc({parts[0]: parts[1].rstrip("/")}))
+    except Exception as e:
+        await message.answer(f"❗ Bo'lmadi: {e}")
+
+
+@dp.message(Command("idlar"))
+async def toc_ids_cmd(message: Message):
+    """Mundarijadagi mavzular va ularning id lari."""
+    if not is_owner(message):
+        return
+    _data_cache["t"] = 0.0
+    toc = (await fetch_data()).get("toc") or []
+    lines = []
+    for sec in toc:
+        lines.append(sec.get("s", ""))
+        lines += [f"  {it.get('post')} — {it.get('t')}" for it in sec.get("items", [])]
+    await message.answer("\n".join(lines) or "toc yo'q")
+
+
+@dp.message(Command("stat"))
+async def stat(message: Message):
+    if not is_owner(message):
+        return
+    d = today()
+    week_ago = (datetime.now(TZ) - timedelta(days=6)).date().isoformat()
+    total = len(users)
+    new_today = sum(1 for r in users.values() if r.get("first") == d)
+    new_week = sum(1 for r in users.values() if r.get("first", "") >= week_ago)
+    active_today = sum(1 for r in users.values() if r.get("last") == d)
+    active_week = sum(1 for r in users.values() if r.get("last", "") >= week_ago)
+    q = stats.get("questions", {})
+    q_today = q.get(d, 0)
+    q_week = sum(v for k, v in q.items() if k >= week_ago)
+    q_all = sum(q.values())
+    last = sorted(users.values(), key=lambda r: r.get("first", ""), reverse=True)[:5]
+    last_lines = "\n".join(
+        f"• {r.get('name') or 'Ismsiz'} — {r.get('first', '')}"
+        for r in last
+    ) or "—"
+    await message.answer(
+        "📊 BOT STATISTIKASI\n\n"
+        f"👥 Jami foydalanuvchi: {total}\n"
+        f"🆕 Yangi: bugun {new_today} · 7 kunda {new_week}\n"
+        f"🔥 Faol: bugun {active_today} · 7 kunda {active_week}\n"
+        f"❓ Savollar: bugun {q_today} · 7 kunda {q_week} · jami {q_all}\n\n"
+        f"Oxirgi yangi foydalanuvchilar:\n{last_lines}\n\n"
+        f"🌐 Sayt statistikasi: https://superiorgrindset.goatcounter.com"
+    )
+
+
+# ---- SAVOLLAR: obunachi → egasi, egasi "Reply" qilsa → obunachiga ----
+
+ASK_TAG = "🆔 "
+
+
+@dp.message(F.reply_to_message, F.from_user.id.in_(list(OWNER_IDS)), F.chat.type == "private")
+async def owner_reply(message: Message):
+    src = message.reply_to_message
+    text = (src.text or src.caption or "")
+    uid = None
+    for line in text.splitlines():
+        if line.startswith(ASK_TAG):
+            tag = line[len(ASK_TAG):].strip()
+            if tag.startswith("#"):
+                uid = anon_map.get(tag[1:])
+            else:
+                try:
+                    uid = int(tag)
+                except ValueError:
+                    pass
+    if not uid:
+        await message.answer("Javob berish uchun savol xabariga (🆔 qatori bor xabarga) Reply qiling.")
+        return
+    try:
+        await bot.send_message(uid, "💬 SUPERIOR GRINDSET javobi:")
+        await message.copy_to(uid)
+        await message.answer("✅ Javob yuborildi.")
+    except Exception as e:
+        await message.answer(f"❗ Yuborilmadi: {e}")
+
+
+@dp.message(F.chat.type == "private")
+async def question(message: Message):
+    u = message.from_user
+    if u and u.id in OWNER_IDS:
+        await message.answer("ℹ️ Obunachiga javob berish uchun uning savoliga Reply qiling.")
+        return
+    if u.id in _anon_active:
+        head = f"🕶 Anonim xabar\n{ASK_TAG}#{anon_token(u.id)}"
+    else:
+        head = f"❓ Yangi savol\n👤 {display_name(u.id)}\n{ASK_TAG}{u.id}"
+    sent = 0
+    for oid in OWNER_IDS:
+        try:
+            if message.text:
+                await bot.send_message(oid, f"{head}\n\n{message.text}")
+            else:  # rasm, video, ovozli xabar: avval sarlavha, keyin o'zi
+                h = await bot.send_message(oid, head)
+                await message.copy_to(oid, reply_to_message_id=h.message_id)
+            sent += 1
+        except Exception:
+            logging.exception("Savol egaga yuborilmadi")
+    if sent:
+        d = today()
+        stats.setdefault("questions", {})[d] = stats.get("questions", {}).get(d, 0) + 1
+        _save(STATS_FILE, stats)
+        await message.answer("✅ Savolingiz qabul qilindi. Tez orada javob beramiz.", reply_markup=main_menu)
+    else:
+        await message.answer("❗ Hozir savolni yuborib bo'lmadi, birozdan keyin qayta urinib ko'ring.")
+
+
+# ---- Egasi postni kanalga O'ZI joylasa: bot uni taniydi va mundarijaga ulaydi ----
+
+def _norm(t: str) -> str:
+    t = re.sub(r"<[^>]+>", "", t or "")
+    t = html.unescape(t).replace("Assalomu alaykum! 👋", "")
+    return re.sub(r"[^0-9a-zA-Z\u0400-\u04FF]+", "", t).lower()
+
+
+@dp.channel_post()
+async def on_channel_post(message: Message):
+    """Kanalda qo'lda chiqqan postni data.json dagi post bilan solishtiradi:
+    topilsa — mundarijaga havola qo'shadi va bot uni qayta chiqarmaydi."""
+    try:
+        body = _norm(message.caption or message.text or "")
+        if len(body) < 40:
+            return
+        posts = await fetch_posts()
+        for p in posts:
+            key = _norm(p.get("caption") or p.get("tg") or "")[:60]
+            if len(key) >= 30 and key in body:
+                posted.add(p["id"])
+                save_posted()
+                approvals[p["id"]] = "yes"
+                save_approvals()
+                res = await update_toc({p["id"]: post_url(message.message_id)}, quiet_if_absent=True)
+                await notify_owners(f"📌 Kanalda \"{p.get('title', p['id'])}\" posti ko'rindi. {res or ''}".strip())
+                return
+    except Exception:
+        logging.exception("channel_post ishlovida xato")
+
+
+@dp.message()
+async def unknown(message: Message):
+    pass  # guruh/kanaldagi boshqa xabarlarga javob bermaydi
+
+# ==========================
+# MAIN
+# ==========================
+
+async def main():
+    me = await bot.get_me()
+    logging.info("Bot ishga tushdi: @%s", me.username)
+    # Eski (kompyuterdagi) bot qoldirgan xabarlarni tashlab, toza boshlaydi
+    await bot.delete_webhook(drop_pending_updates=True)
+    sched = asyncio.create_task(scheduler())  # havola saqlanadi, aks holda GC o'chirishi mumkin
+    try:
+        await dp.start_polling(bot)
+    finally:
+        sched.cancel()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
