@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Superior Grindset</title>
 <meta name="description" content="Superior Grindset — mashqlar, ovqatlanish va foydali fitness ma'lumotlari o'zbek tilida.">
+<link rel="canonical" href="https://superior-grindset.github.io/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Superior Grindset">
+<meta property="og:url" content="https://superior-grindset.github.io/">
+<meta name="twitter:card" content="summary_large_image">
 <meta property="og:title" content="Superior Grindset">
 <meta property="og:description" content="Mashq videolari, texnika, ovqatlanish va foydali ma'lumotlar — o'zbek tilida.">
 <meta property="og:image" content="https://superior-grindset.github.io/bilim.jpg">
@@ -245,6 +250,7 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
 </head>
 <body>
 <div id="app"><div class="wrap loading">Yuklanmoqda…</div></div>
+<noscript><div class="wrap"><h1>Superior Grindset</h1><p>Mashqlar, ovqatlanish va foydali fitness ma'lumotlari o'zbek tilida. Saytni ko'rish uchun JavaScript yoqilgan bo'lishi kerak.</p><p><a href="https://t.me/superior_grindset">Telegram kanal</a></p></div></noscript>
 <script>
 (function(){
   // ---------- TILLAR / LANGUAGES / ЯЗЫКИ ----------
@@ -422,7 +428,7 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
       return {kind:"iframe", platform:"Vimeo", vertical:false, src:"https://player.vimeo.com/video/" + parts[parts.length-1]};
     if ((host === "t.me" || host === "telegram.me") && parts.length === 2 && /^\d+$/.test(parts[1]) && /^[A-Za-z0-9_]{4,}$/.test(parts[0]))
       return {kind:"telegram", platform:"Telegram", vertical:false, src:"https://t.me/" + parts[0] + "/" + parts[1] + "?embed=1"};
-    if (/\.(mp4|webm|mov)$/i.test(u.pathname)) return {kind:"file", platform:"Video", vertical:true, src:url};
+    if (/\.(mp4|webm|mov)$/i.test(u.pathname)) return {kind:"file", platform:"Video", vertical:true, src:url, thumb:url.replace(/\.(mp4|webm|mov)$/i, ".jpg")};
     return null;
   }
 
@@ -591,7 +597,7 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
     if (emb.kind === "telegram")
       return el("div", {class:"player"}, [el("iframe", {class:"tg", src:emb.src, title:"Video", scrolling:"no"})]);
     var inner = emb.kind === "file"
-      ? el("video", {src:emb.src, controls:true, playsinline:true, preload:"metadata"})
+      ? el("video", {src:emb.src, controls:true, playsinline:true, preload:"none", poster:emb.thumb || null})
       : el("iframe", {src:emb.src, title:"Video", allow:"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share", allowfullscreen:true, referrerpolicy:"strict-origin-when-cross-origin"});
     return el("div", {class:"player" + (emb.vertical ? " vertical" : "")}, [el("div", {class:"box"}, [inner])]);
   }
@@ -600,11 +606,11 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
     var e = DATA.exercises.filter(function(x){ return String(x.id) === id; })[0];
     if (!e) return pageNotFound();
     var m = MBY[e.muscle] || {name:e.muscle};
-    var specs = (e.sets || e.reps || e.rest) ? el("div", {class:"specs"}, [
-      el("div", null, [el("b", {text:e.sets || "—"}), el("span", {text:t("sets")})]),
-      el("div", null, [el("b", {text:e.reps || "—"}), el("span", {text:t("reps")})]),
-      el("div", null, [el("b", {text:e.rest || "—"}), el("span", {text:t("rest")})])
-    ]) : null;
+    var cells = [];
+    if (e.sets) cells.push(el("div", null, [el("b", {text:e.sets}), el("span", {text:t("sets")})]));
+    if (e.reps) cells.push(el("div", null, [el("b", {text:e.reps}), el("span", {text:t("reps")})]));
+    if (e.rest) cells.push(el("div", null, [el("b", {text:e.rest}), el("span", {text:t("rest")})]));
+    var specs = cells.length ? el("div", {class:"specs", style:"grid-template-columns:repeat(" + cells.length + ",1fr)"}, cells) : null;
     var body = tx(e, "body");
     return [page([
       el("a", {class:"back", href:"#/m/" + e.muscle, text:"← " + m.name}),
@@ -691,7 +697,10 @@ html[lang="ru"] body{font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Rob
       else if (r.page === "bilim" || r.page === "mundarija") title = "Bilim — " + base;
       else if (r.page === "m"){
         var mu = MUSCLES.filter(function(x){ return x.id === r.arg; })[0];
-        title = (mu ? mu.name : r.arg) + " — mashqlar | " + base;
+        title = ((T.uz.muscles && T.uz.muscles[r.arg]) || (mu ? mu.name : r.arg)) + " mashqlari | " + base;
+      } else if (r.page === "ex"){
+        var ex = DATA.exercises.filter(function(x){ return String(x.id) === r.arg; })[0];
+        if (ex){ title = ex.name + " | " + base; desc = ex.name + " — mashq videosi" + (ex.body ? ". " + ex.body.replace(/\s+/g, " ").slice(0, 140) : "") + "."; }
       } else if (r.page === "post"){
         var p = DATA.posts.filter(function(x){ return x.id === r.arg; })[0];
         if (p){ title = p.title + " | " + base; desc = p.title + " — " + base + " kanali uchun o'zbek tilidagi fitness ma'lumoti."; }

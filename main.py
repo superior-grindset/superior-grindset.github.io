@@ -343,7 +343,7 @@ def channel_text(p: dict) -> str:
         text = greet + f"<b>{html.escape(p.get('title', ''), quote=False)}</b>\n\n{html.escape(p.get('body', ''), quote=False)}"
     base = site_base()
     if base:
-        text += f'\n\n👉 <a href="{base}/#/post/{p["id"]}">To\'liq maqola saytda</a>'
+        text += f'\n\n👉 <a href="{base}/p/{p["id"]}/">To\'liq maqola saytda</a>'
     return text
 
 
@@ -371,7 +371,7 @@ def post_caption(p: dict) -> str:
     if not cap:
         return channel_text(p)          # channel_text o'zi sayt havolasini qo'shadi
     if base:
-        cap += f'\n\n📖 <a href="{base}/#/post/{p["id"]}">Batafsil — saytda</a>'
+        cap += f'\n\n📖 <a href="{base}/p/{p["id"]}/">Batafsil — saytda</a>'
     return cap
 
 
@@ -489,12 +489,27 @@ async def send_post_videos(chat_id, p: dict) -> int:
             media.append(VIDEO_IDS.get(rel) or FSInputFile(os.path.join(root, rel)))
         if not media:
             continue
+        base = site_base()
+        ids = a.get("ids") or []
+        lines = a.get("lines") or []
+        note = a.get("note") or ""
+        link = f"\n\n📖 Texnika va batafsil saytda: {base}/p/{p['id']}/" if base else ""
+        plain_len = len(a.get("title", "")) + 2 + sum(len(x) + 1 for x in lines) + (len(note) + 2 if note else 0) + len(link)
+        if plain_len > 1000 and note:
+            note = ""
         cap = f"<b>{html.escape(a.get('title', ''), quote=False)}</b>"
-        if a.get("lines"):
-            cap += "\n\n" + "\n".join(html.escape(x, quote=False) for x in a["lines"])
-        if a.get("note"):
-            cap += "\n\n" + html.escape(a["note"], quote=False)
-        cap = cap[:1020]
+        if lines:
+            rows = []
+            for k, x in enumerate(lines):
+                t = html.escape(x, quote=False)
+                if base and k < len(ids):
+                    t = f'<a href="{base}/e/{ids[k]}/">{t}</a>'
+                rows.append(t)
+            cap += "\n\n" + "\n".join(rows)
+        if note:
+            cap += "\n\n" + html.escape(note, quote=False)
+        if base:
+            cap += f'\n\n📖 <a href="{base}/p/{p["id"]}/">Texnika va batafsil saytda</a>'
         items = [InputMediaVideo(media=mv, caption=cap if k == 0 else None, parse_mode="HTML" if k == 0 else None,
                                  supports_streaming=True, width=720, height=1280) for k, mv in enumerate(media)]
         try:
